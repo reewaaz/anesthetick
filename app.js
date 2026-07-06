@@ -47,6 +47,39 @@
   // Apply theme on load
   applyTheme(state.theme);
 
+  /* ── Sound effects ─────────────────────────────────────── */
+  let audioCtx = null;
+
+  function getAudioCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+  }
+
+  function playTone(freq, duration, type, vol) {
+    try {
+      const ctx = getAudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(vol || 0.12, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + duration);
+    } catch (_) {}
+  }
+
+  function sfxCheck() { playTone(880, 0.15, 'sine', 0.12); }
+  function sfxUncheck() { playTone(440, 0.12, 'triangle', 0.08); }
+  function sfxNav() { playTone(660, 0.08, 'sine', 0.06); }
+  function sfxCelebrate() {
+    [523, 659, 784, 1047].forEach((f, i) => {
+      setTimeout(() => playTone(f, 0.3, 'sine', 0.1), i * 80);
+    });
+  }
+  function sfxBookmark() { playTone(1200, 0.1, 'sine', 0.06); }
+
   /* ── helpers ───────────────────────────────────────────── */
   const $ = (s, p = document) => p.querySelector(s);
   const $$ = (s, p = document) => [...p.querySelectorAll(s)];
@@ -475,10 +508,11 @@
     return inner;
   }
 
-  function viewSettings() {
+  function viewCombinedSettings() {
     const inner = document.createElement('div');
     inner.className = 'inner';
     const isLight = state.theme === 'light';
+
     inner.innerHTML = html`
       <div class="list-title">Settings</div>
 
@@ -532,11 +566,33 @@
         </div>
       </div>
 
+      <div class="set-group">
+        <div class="set-group-title">References &amp; Resources</div>
+        <div class="ref-grid">${REFS.map((r, i) => html`
+          <div class="ref-card${r.url ? ' clickable' : ''}" data-url="${r.url || ''}">
+            <h3>${r.name}</h3>
+            <p>${r.desc}</p>
+            ${r.url ? html`<div class="ref-link"><svg viewBox="0 0 24 24" class="ic" style="width:14px;height:14px"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Open resource</div>` : ''}
+          </div>
+        `).join('')}</div>
+      </div>
+
       <div style="text-align:center;margin:30px 0;color:var(--muted);font-size:12px;font-weight:400">
         Anesthetick &mdash; EDAIC / FRCA Study Planner<br>
         <span style="font-size:11px">v1.1 &middot; Data saved locally on this device</span>
       </div>
     `;
+
+    // Attach click handlers for ref cards
+    requestAnimationFrame(() => {
+      inner.querySelectorAll('.ref-card.clickable').forEach(card => {
+        card.addEventListener('click', () => {
+          const url = card.dataset.url;
+          if (url) window.open(url, '_blank', 'noopener');
+        });
+      });
+    });
+
     return inner;
   }
 
@@ -567,18 +623,30 @@
 
   /* ── Celebration ──────────────────────────────────────── */
   function celebrate() {
-    for (let i = 0; i < 30; i++) {
+    const chars = ['✓','●','✦','★','♦','♥','✧','⬡','◆','✶'];
+    const colors = ['#e88d5a','#5bc0be','#4ade80','#fb923c','#f87171','#a78bfa','#facc15','#67e8f9','#f472b6','#34d399'];
+    const count = 60;
+    for (let i = 0; i < count; i++) {
       const p = document.createElement('div');
       p.className = 'confetti';
-      p.textContent = ['✓','●','✦','★','♦','♥'][Math.floor(Math.random() * 6)];
-      p.style.left = Math.random() * 100 + '%';
-      p.style.animationDuration = (1.5 + Math.random() * 1.5) + 's';
-      p.style.animationDelay = Math.random() * 0.5 + 's';
-      p.style.color = ['#e88d5a','#5bc0be','#4ade80','#fb923c','#f87171','#a78bfa'][Math.floor(Math.random() * 6)];
-      p.style.fontSize = (14 + Math.random() * 16) + 'px';
+      p.textContent = chars[Math.floor(Math.random() * chars.length)];
+      const angle = Math.random() * 360;
+      const dist = 100 + Math.random() * 300;
+      const rad = angle * Math.PI / 180;
+      const dx = Math.cos(rad) * dist;
+      const dy = Math.sin(rad) * dist - 100;
+      p.style.setProperty('--dx', dx + 'px');
+      p.style.setProperty('--dy', dy + 'px');
+      p.style.left = '50%';
+      p.style.top = '45%';
+      p.style.animationDuration = (0.6 + Math.random() * 0.8) + 's';
+      p.style.animationDelay = Math.random() * 0.2 + 's';
+      p.style.color = colors[Math.floor(Math.random() * colors.length)];
+      p.style.fontSize = (12 + Math.random() * 20) + 'px';
       document.body.appendChild(p);
-      setTimeout(() => p.remove(), 3000);
+      setTimeout(() => p.remove(), 2000);
     }
+    sfxCelebrate();
   }
 
   function navigate(view, data) {
@@ -586,14 +654,13 @@
       case 'home': showView(viewHome); break;
       case 'progress': showView(viewProgress); break;
       case 'bookmarks': showView(viewBookmarks); break;
-      case 'references': showView(viewReferences); break;
-      case 'settings': showView(viewSettings); break;
+      case 'settings': showView(viewCombinedSettings); break;
       case 'category': showView(viewCategory, data); break;
       case 'topic': showView(viewTopic, data); break;
       case 'search': showView(viewSearch, data); break;
       default: showView(viewHome);
     }
-    const navView = ['home', 'progress', 'bookmarks', 'references', 'settings'].includes(view) ? view : 'home';
+    const navView = ['home', 'progress', 'bookmarks', 'settings'].includes(view) ? view : 'home';
     updateNav(navView);
   }
 
@@ -653,6 +720,7 @@
     // Navigation
     if (target.dataset.nav) {
       const nav = target.dataset.nav;
+      sfxNav();
       if (nav === 'home') navigate('home');
       else if (nav === 'category') navigate('category', target.dataset.cat);
       return;
@@ -660,12 +728,14 @@
 
     // Category card
     if (target.dataset.cat) {
+      sfxNav();
       navigate('category', target.dataset.cat);
       return;
     }
 
     // Topic click (click on topic row)
     if (target.dataset.topicId && !target.dataset.action) {
+      sfxNav();
       navigate('topic', target.dataset.topicId);
       return;
     }
@@ -686,6 +756,8 @@
             const u = uid(all.catId, all.secId, all.id, i);
             state.progress[u] = checkAll;
           }
+          if (checkAll) { sfxCheck(); } else { sfxUncheck(); }
+          if (checkAll) celebrate();
           topicEl.classList.toggle('done', checkAll);
           const newPct = topicProgress(all);
           let pctEl = topicEl.querySelector('.t-pct');
@@ -708,6 +780,7 @@
     // Bookmark toggle
     if (action === 'bookmark') {
       e.stopPropagation();
+      sfxBookmark();
       const topicEl = target.closest('[data-topic-id]');
       if (!topicEl) return;
       const tid = topicEl.dataset.topicId;
@@ -733,8 +806,8 @@
         }
       });
       saveState();
+      if (checkVal) { sfxCelebrate(); celebrate(); } else { sfxUncheck(); }
       toast(checkVal ? 'All checked' : 'All unchecked');
-      if (checkVal && items.length > 0) celebrate();
       return;
     }
 
@@ -761,6 +834,7 @@
       const toggleEl = target.closest('.theme-toggle');
       if (toggleEl) toggleEl.classList.toggle('on');
       toast(state.theme === 'light' ? 'Light theme' : 'Dark theme');
+      sfxCheck();
       return;
     }
 
@@ -792,8 +866,19 @@
     const subItem = e.target.closest('.sub-item');
     if (!subItem || subItem.dataset.uid === undefined) return;
     const u = subItem.dataset.uid;
+    const wasDone = isDone(u);
     toggleDone(u);
     subItem.classList.toggle('done', isDone(u));
+    if (wasDone) { sfxUncheck(); } else { sfxCheck(); }
+    // Check if all subtopics are now done → celebrate
+    const parentTopic = subItem.closest('[data-topic-id]');
+    if (parentTopic) {
+      const all = ALL_TOPICS.find(t => t.id === parentTopic.dataset.topicId);
+      if (all && all.sub?.length) {
+        const allDone = all.sub.every((_, i) => isDone(uid(all.catId, all.secId, all.id, i)));
+        if (allDone) { sfxCelebrate(); celebrate(); }
+      }
+    }
     // Update parent topic progress if visible
     const topicEl = subItem.closest('[data-topic-id]');
     if (topicEl) {
@@ -821,6 +906,7 @@
     const bookmarkBtn = e.target.closest('[data-action="bookmark"]');
     if (bookmarkBtn) {
       e.stopPropagation();
+      sfxBookmark();
       const topicEl = $sheetContent.querySelector('[data-topic-id]');
       if (topicEl) {
         const tid = topicEl.dataset.topicId;
@@ -838,8 +924,10 @@
     const subItem = e.target.closest('.sub-item');
     if (!subItem || subItem.dataset.uid === undefined) return;
     const u = subItem.dataset.uid;
+    const wasDone = isDone(u);
     toggleDone(u);
     subItem.classList.toggle('done', isDone(u));
+    if (wasDone) { sfxUncheck(); } else { sfxCheck(); }
   });
 
   // Search input
@@ -898,6 +986,7 @@
   $$('.navbtn').forEach(btn => {
     btn.addEventListener('click', () => {
       const view = btn.dataset.view;
+      sfxNav();
       if ($searchWrap.classList.contains('open')) {
         $searchWrap.classList.remove('open');
         $topTitle.classList.remove('hidden');
@@ -910,14 +999,9 @@
   // Sheet backdrop
   $sheetBackdrop.addEventListener('click', closeSheet);
 
-  // Home button
-  $('#homeBtn').addEventListener('click', () => {
-    collapseSearch();
-    navigate('home');
-  });
-
   // Stats button
   $('#statsBtn').addEventListener('click', () => {
+    sfxNav();
     collapseSearch();
     navigate('progress');
   });
@@ -956,9 +1040,19 @@
   });
 
   /* ── Ripple + global interaction ──────────────────────── */
-  document.addEventListener('click', e => {
-    const btn = e.target.closest('button, .navbtn, .cat, .sub-item, .result, .link-item, .set-row');
-    if (btn) btn.style.position === 'relative' || btn.classList.add('ripple-host');
+  document.addEventListener('pointerdown', e => {
+    const btn = e.target.closest('button, .navbtn, .cat, .topic, .sub-item, .result, .link-item, .set-row, .ref-card.clickable');
+    if (!btn) return;
+    if (!btn.classList.contains('ripple-host')) btn.classList.add('ripple-host');
+    const r = document.createElement('span');
+    r.className = 'ripple';
+    const rect = btn.getBoundingClientRect();
+    const s = Math.max(rect.width, rect.height);
+    r.style.width = r.style.height = s + 'px';
+    r.style.left = (e.clientX - rect.left - s / 2) + 'px';
+    r.style.top = (e.clientY - rect.top - s / 2) + 'px';
+    btn.appendChild(r);
+    r.addEventListener('animationend', () => r.remove());
   });
 
   /* ── init ───────────────────────────────────────────────── */

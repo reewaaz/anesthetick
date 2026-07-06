@@ -329,7 +329,8 @@ main::-webkit-scrollbar-thumb {
 }
 
 .cat:active {
-  transform: scale(0.97);
+  transform: scale(0.96);
+  border-color: var(--accent2);
 }
 
 .cat::after {
@@ -463,6 +464,7 @@ main::-webkit-scrollbar-thumb {
   cursor: pointer;
   transition: 0.25s var(--ease);
   animation: rise 0.4s var(--ease) both;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .topic:hover {
@@ -472,7 +474,8 @@ main::-webkit-scrollbar-thumb {
 }
 
 .topic:active {
-  transform: scale(0.98);
+  transform: scale(0.97);
+  border-color: var(--accent2);
 }
 
 .topic .check {
@@ -595,6 +598,11 @@ main::-webkit-scrollbar-thumb {
 .result:hover {
   border-color: rgba(148, 163, 184, 0.3);
   transform: translateX(3px);
+}
+
+.result:active {
+  transform: scale(0.97);
+  border-color: var(--accent2);
 }
 
 .result .r-cat {
@@ -785,12 +793,18 @@ main::-webkit-scrollbar-thumb {
   transition: background 0.2s, border-color 0.2s, transform 0.15s;
   margin-bottom: 10px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+  -webkit-tap-highlight-color: transparent;
 }
 
 .sub-item:hover {
   background: var(--surface2);
   border-left-color: var(--accent);
   transform: translateX(2px);
+}
+
+.sub-item:active {
+  transform: scale(0.97);
+  border-left-color: var(--accent2);
 }
 
 .sub-item:last-child {
@@ -1119,6 +1133,13 @@ main::-webkit-scrollbar-thumb {
   padding: 14px 16px;
   margin-bottom: 9px;
   gap: 12px;
+  transition: 0.2s var(--ease);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.set-row:active {
+  transform: scale(0.98);
+  border-color: var(--accent2);
 }
 
 .set-row .set-info {
@@ -1306,6 +1327,16 @@ main::-webkit-scrollbar-thumb {
 
 .navbtn:active {
   transform: scale(0.92);
+}
+
+.navbtn:active svg {
+  animation: navPress 0.2s var(--ease);
+}
+
+@keyframes navPress {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.85); }
+  100% { transform: scale(1); }
 }
 
 @keyframes pop {
@@ -1650,20 +1681,38 @@ main::-webkit-scrollbar-thumb {
 .ripple {
   position: absolute;
   border-radius: 50%;
-  background: rgba(255,255,255,0.25);
+  background: rgba(255,255,255,0.2);
   pointer-events: none;
   animation: rippleAnim 0.6s ease-out forwards;
+}
+
+[data-theme="light"] .ripple {
+  background: rgba(0,0,0,0.1);
 }
 
 /* ── Confetti ──────────────────────────────────────────── */
 .confetti {
   position: fixed;
-  top: 50%;
   z-index: 999;
   pointer-events: none;
   font-weight: 700;
-  animation: celebrate var(--duration, 2s) ease-out forwards;
+  animation: confettiBurst var(--duration, 1s) ease-out forwards;
   text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+@keyframes confettiBurst {
+  0% {
+    opacity: 1;
+    transform: translate(0, 0) scale(0.5) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(calc(var(--dx, 100px) * 0.6), calc(var(--dy, -100px) * 0.6)) scale(1.2) rotate(180deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx, 100px), var(--dy, -100px)) scale(0.3) rotate(360deg);
+  }
 }
 
 /* ── Entrance on topic detail │ sheet ──────────────────── */
@@ -1717,4 +1766,5 @@ main::-webkit-scrollbar-thumb {
   }
   .confetti { display: none !important; }
   .ripple { display: none !important; }
+  .navbtn:active svg { animation: none !important; }
 }
