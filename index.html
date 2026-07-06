@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="description" content="A comprehensive anesthesia study planner for EDAIC and FRCA preparation." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Anestheticks" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="assets/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>Anestheticks</title>
+</head>
+<body>
+  <!-- App shell -->
+  <div id="app">
+
+    <!-- Top bar (no text header — icon + search only) -->
+    <header class="topbar">
+      <button class="icon-btn" id="homeBtn" aria-label="Home">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+      </button>
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" class="ic search-ic"><path d="M21 21l-4.3-4.3M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input type="search" id="searchInput" placeholder="Search topics…" autocomplete="off" />
+        <button class="clear-search" id="clearSearch" aria-label="Clear" hidden>
+          <svg viewBox="0 0 24 24" class="ic"><path d="M18 6 6 18M6 6l12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <button class="icon-btn" id="statsBtn" aria-label="Progress">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </header>
+
+    <!-- Main views -->
+    <main id="view"></main>
+
+    <!-- Bottom navigation -->
+    <nav class="bottomnav">
+      <button class="navbtn active" data-view="home">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M3 11.5 12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>
+        <span>Home</span>
+      </button>
+      <button class="navbtn" data-view="progress">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M12 3v18M3 12h18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        <span>Progress</span>
+      </button>
+      <button class="navbtn" data-view="bookmarks">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M6 3h12v18l-6-4-6 4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        <span>Saved</span>
+      </button>
+      <button class="navbtn" data-view="references">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M4 5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2zM18 3v16M8 7h6M8 11h6" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
+        <span>Refs</span>
+      </button>
+      <button class="navbtn" data-view="settings">
+        <svg viewBox="0 0 24 24" class="ic"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 0 1-4 0v-.1A1.6 1.6 0 0 0 7 19.4a1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0-1.1-2.7H1a2 2 0 0 1 0-4h.1A1.6 1.6 0 0 0 2.6 7a1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H7a1.6 1.6 0 0 0 1-1.5V1a2 2 0 0 1 4 0v.1a1.6 1.6 0 0 0 2.7 1.1 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V7a1.6 1.6 0 0 0 1.5 1H23a2 2 0 0 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z" fill="none" stroke="currentColor" stroke-width="2"/></svg>
+        <span>More</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- Detail sheet -->
+  <div class="sheet-backdrop" id="sheetBackdrop" hidden></div>
+  <div class="sheet" id="sheet" hidden>
+    <div class="sheet-handle"></div>
+    <div class="sheet-content" id="sheetContent"></div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast" hidden></div>
+
+  <!-- Install prompt -->
+  <div class="install-banner" id="installBanner" hidden>
+    <div class="install-text">
+      <svg viewBox="0 0 24 24" class="ic"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Install Anestheticks for offline study</span>
+    </div>
+    <button id="installBtn" class="btn-primary">Install</button>
+    <button id="installDismiss" class="btn-ghost">Later</button>
+  </div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
