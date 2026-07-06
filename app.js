@@ -844,12 +844,33 @@
 
   // Search input
   const $searchInput = $('#searchInput');
-  const $clearSearch = $('#clearSearch');
+  const $searchWrap = $('#searchWrap');
+  const $topTitle = $('#topTitle');
 
   let searchTimeout;
+
+  function expandSearch() {
+    $searchWrap.classList.add('open');
+    $topTitle.classList.add('hidden');
+    $searchInput.focus();
+  }
+
+  function collapseSearch() {
+    $searchWrap.classList.remove('open');
+    $topTitle.classList.remove('hidden');
+    $searchInput.value = '';
+    clearTimeout(searchTimeout);
+    navigate('home');
+  }
+
+  $searchWrap.addEventListener('click', (e) => {
+    if (!$searchWrap.classList.contains('open')) {
+      expandSearch();
+    }
+  });
+
   $searchInput.addEventListener('input', () => {
     const v = $searchInput.value;
-    $clearSearch.hidden = !v;
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
       if (v) {
@@ -860,19 +881,28 @@
     }, 150);
   });
 
-  $clearSearch.addEventListener('click', () => {
-    $searchInput.value = '';
-    $searchInput.focus();
-    $clearSearch.hidden = true;
-    navigate('home');
+  $searchInput.addEventListener('blur', () => {
+    if (!$searchInput.value) {
+      collapseSearch();
+    }
+  });
+
+  $searchInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      collapseSearch();
+      e.preventDefault();
+    }
   });
 
   // Bottom navigation
   $$('.navbtn').forEach(btn => {
     btn.addEventListener('click', () => {
       const view = btn.dataset.view;
-      $searchInput.value = '';
-      $clearSearch.hidden = true;
+      if ($searchWrap.classList.contains('open')) {
+        $searchWrap.classList.remove('open');
+        $topTitle.classList.remove('hidden');
+        $searchInput.value = '';
+      }
       navigate(view);
     });
   });
@@ -882,15 +912,13 @@
 
   // Home button
   $('#homeBtn').addEventListener('click', () => {
-    $searchInput.value = '';
-    $clearSearch.hidden = true;
+    collapseSearch();
     navigate('home');
   });
 
   // Stats button
   $('#statsBtn').addEventListener('click', () => {
-    $searchInput.value = '';
-    $clearSearch.hidden = true;
+    collapseSearch();
     navigate('progress');
   });
 
