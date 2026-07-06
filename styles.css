@@ -90,6 +90,7 @@ body {
   height: 24px;
   fill: currentColor;
   flex: 0 0 auto;
+  pointer-events: none;
 }
 
 button {
@@ -1019,19 +1020,36 @@ main::-webkit-scrollbar-thumb {
 }
 
 /* ── Refs view ─────────────────────────────────────────── */
+.ref-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
 .ref-card {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   padding: 16px;
-  margin-bottom: 12px;
   animation: rise 0.4s both;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.ref-card.clickable {
+  cursor: pointer;
+}
+
+.ref-card.clickable:hover {
+  border-color: var(--accent2);
+  transform: translateX(4px);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
 }
 
 .ref-card h3 {
   margin: 0 0 6px;
   font-size: 15px;
   font-weight: 650;
+  color: var(--text);
 }
 
 .ref-card p {
@@ -1042,10 +1060,24 @@ main::-webkit-scrollbar-thumb {
   font-weight: 400;
 }
 
-.ref-card a {
+.ref-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--accent2);
-  font-weight: 500;
-  font-size: 13px;
+  padding: 4px 10px;
+  background: var(--bg2);
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  transition: 0.2s;
+}
+
+.ref-card.clickable:hover .ref-link {
+  background: color-mix(in srgb, var(--accent2) 12%, transparent);
+  border-color: var(--accent2);
 }
 
 /* ── Settings ──────────────────────────────────────────── */
@@ -1198,7 +1230,7 @@ main::-webkit-scrollbar-thumb {
 /* ── Bottom nav ────────────────────────────────────────── */
 .bottomnav {
   display: flex;
-  background: rgba(11, 17, 32, 0.85);
+  background: color-mix(in srgb, var(--bg2) 92%, transparent);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border-top: 1px solid var(--line);
@@ -1207,10 +1239,6 @@ main::-webkit-scrollbar-thumb {
   position: relative;
   z-index: 30;
   transition: background 0.3s var(--ease);
-}
-
-[data-theme="light"] .bottomnav {
-  background: rgba(255, 255, 255, 0.88);
 }
 
 .navbtn {

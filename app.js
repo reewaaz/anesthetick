@@ -241,12 +241,7 @@
     const inner = document.createElement('div');
     inner.className = 'inner';
     inner.innerHTML = html`
-      <div class="hero">
-        <div class="glyph">
-          <svg viewBox="0 0 24 24"><path d="M12 2C7 2 2 7 2 12s5 10 10 10 10-5 10-10S17 2 12 2zm0 18c-4.4 0-8-3.6-8-8s3.6-8 8-8 8 3.6 8 8-3.6 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z" fill="currentColor" opacity=".7"/></svg>
-        </div>
-      </div>
-      <div class="grid stagger">${CURRICULUM.map(renderCategoryCard).join('')}</div>
+      <div class="grid stagger" style="margin-top:8px">${CURRICULUM.map(renderCategoryCard).join('')}</div>
     `;
     return inner;
   }
@@ -431,52 +426,52 @@
     return inner;
   }
 
+  const REFS = [
+    { name: "Morgan & Mikhail's Clinical Anesthesiology (6th ed)", desc: 'Core textbook for EDAIC/FRCA. Referenced as <strong>MM</strong> throughout.', url: '' },
+    { name: "Miller's Anesthesia (10th ed)", desc: 'Comprehensive reference. Referenced as <strong>MIL</strong>.', url: '' },
+    { name: "Dorsch & Dorsch — Understanding Anesthesia Equipment (5th ed)", desc: 'Equipment reference. Referenced as <strong>DD</strong>.', url: '' },
+    { name: "British Journal of Anaesthesia (BJA)", desc: 'Leading anaesthesia journal. Free CME and review articles.', url: 'https://www.bjaed.org' },
+    { name: "Anesthesia & Analgesia", desc: 'International journal of anesthesia research.', url: 'https://journals.lww.com/anesthesia-analgesia' },
+    { name: "OpenAnesthesia", desc: 'Free online anesthesia education resource.', url: 'https://openanesthesia.org' },
+    { name: "Anaesthesia Tutorial of the Week (ATOTW)", desc: 'WFSA / AnaesthesiaUK tutorials.', url: 'https://www.wfsahq.org/resources/anaesthesia-tutorial-of-the-week' },
+    { name: "NYSORA — Regional Anesthesia", desc: 'Free regional anesthesia education.', url: 'https://www.nysora.com' },
+    { name: "Life in the Fast Lane (LITFL)", desc: 'Medical education blog and FOAMed resource.', url: 'https://litfl.com' },
+    { name: "Deranged Physiology", desc: 'Free physiology and critical care notes for anaesthesia trainees.', url: 'https://derangedphysiology.com' },
+    { name: "PhysiologyWeb", desc: 'Free open physiology texts.', url: 'https://www.physiologyweb.com' },
+    { name: "Anaesthesia UK", desc: 'FRCA revision resources.', url: 'https://www.anaesthesiauk.com' },
+    { name: "MHAUS — Malignant Hyperthermia Association", desc: 'MH hotline, protocols, and patient resources.', url: 'https://www.mhaus.org' },
+    { name: "ASRA — American Society of Regional Anesthesia", desc: 'Regional anesthesia and pain medicine guidelines.', url: 'https://www.asra.com' },
+    { name: "APSF — Anesthesia Patient Safety Foundation", desc: 'Patient safety resources and incident reporting.', url: 'https://www.apsf.org' },
+    { name: "Difficult Airway Society (DAS)", desc: 'UK airway management guidelines and algorithms.', url: 'https://www.das.uk.com' },
+    { name: "Resuscitation Council (UK)", desc: 'CPR and resuscitation guidelines.', url: 'https://www.resus.org.uk' },
+    { name: "EBA/ESAIC", desc: 'European Society of Anaesthesiology and Intensive Care — EDAIC exam info.', url: 'https://www.esaic.org' },
+    { name: "RCoA — Royal College of Anaesthetists", desc: 'FRCA exam curriculum and resources.', url: 'https://www.rcoa.ac.uk' },
+    { name: "PubMed / MEDLINE", desc: 'Primary biomedical literature database for anesthesia research.', url: 'https://pubmed.ncbi.nlm.nih.gov' },
+    { name: "Cochrane Library", desc: 'Systematic reviews and meta-analyses in perioperative medicine.', url: 'https://www.cochranelibrary.com' },
+  ];
+
   function viewReferences() {
     const inner = document.createElement('div');
     inner.className = 'inner';
     inner.innerHTML = html`
-      <div class="list-title">References</div>
-      <div class="ref-card">
-        <h3>Morgan & Mikhail's Clinical Anesthesiology (6th ed)</h3>
-        <p>Core textbook for EDAIC/FRCA. Referenced as <strong>MM</strong> throughout.</p>
-      </div>
-      <div class="ref-card">
-        <h3>Miller's Anesthesia (10th ed)</h3>
-        <p>Comprehensive reference. Referenced as <strong>MIL</strong>.</p>
-      </div>
-      <div class="ref-card">
-        <h3>Dorsch & Dorsch — Understanding Anesthesia Equipment (5th ed)</h3>
-        <p>Equipment reference. Referenced as <strong>DD</strong>.</p>
-      </div>
-      <div class="ref-card">
-        <h3>OpenAnesthesia</h3>
-        <p>Free online resource. <a href="https://openanesthesia.org" target="_blank">openanesthesia.org</a></p>
-      </div>
-      <div class="ref-card">
-        <h3>Anaesthesia Tutorial of the Week (ATOTW)</h3>
-        <p>WFSA / AnaesthesiaUK tutorials. <a href="https://www.wfsahq.org/resources/anaesthesia-tutorial-of-the-week" target="_blank">wfsahq.org</a></p>
-      </div>
-      <div class="ref-card">
-        <h3>NYSORA — Regional Anesthesia</h3>
-        <p>Free regional anesthesia education. <a href="https://www.nysora.com" target="_blank">nysora.com</a></p>
-      </div>
-      <div class="ref-card">
-        <h3>Life in the Fast Lane</h3>
-        <p>Medical education. <a href="https://litfl.com" target="_blank">litfl.com</a></p>
-      </div>
-      <div class="ref-card">
-        <h3>PhysiologyWeb</h3>
-        <p>Free open physiology texts. Referenced as <strong>PS</strong>.</p>
-      </div>
-      <div class="ref-card">
-        <h3>Deranged Physiology</h3>
-        <p>Free physiology and critical care notes. <a href="https://derangedphysiology.com" target="_blank">derangedphysiology.com</a></p>
-      </div>
-      <div class="ref-card">
-        <h3>Anaesthesia UK (FRCA revision)</h3>
-        <p>FRCA revision resources. <a href="https://www.anaesthesiauk.com" target="_blank">anaesthesiauk.com</a></p>
-      </div>
+      <div class="list-title">References &amp; Resources</div>
+      <div class="ref-grid">${REFS.map((r, i) => html`
+        <div class="ref-card${r.url ? ' clickable' : ''}" data-url="${r.url || ''}">
+          <h3>${r.name}</h3>
+          <p>${r.desc}</p>
+          ${r.url ? html`<div class="ref-link"><svg viewBox="0 0 24 24" class="ic" style="width:14px;height:14px"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg> Open resource</div>` : ''}
+        </div>
+      `).join('')}</div>
     `;
+    // Attach click handlers for ref cards
+    requestAnimationFrame(() => {
+      inner.querySelectorAll('.ref-card.clickable').forEach(card => {
+        card.addEventListener('click', () => {
+          const url = card.dataset.url;
+          if (url) window.open(url, '_blank', 'noopener');
+        });
+      });
+    });
     return inner;
   }
 
@@ -820,8 +815,26 @@
     }
   });
 
-  // Sheet sub-item clicks
+  // Sheet sub-item and bookmark clicks
   $sheetContent.addEventListener('click', e => {
+    // Bookmark in sheet
+    const bookmarkBtn = e.target.closest('[data-action="bookmark"]');
+    if (bookmarkBtn) {
+      e.stopPropagation();
+      const topicEl = $sheetContent.querySelector('[data-topic-id]');
+      if (topicEl) {
+        const tid = topicEl.dataset.topicId;
+        toggleBookmark(tid);
+        const btns = $sheetContent.querySelectorAll('.bookmark-btn');
+        btns.forEach(btn => {
+          btn.classList.toggle('active');
+          btn.innerHTML = isBookmarked(tid) ? ICONS['bookmark-filled'] : ICONS.bookmark;
+        });
+        toast(isBookmarked(tid) ? 'Topic saved' : 'Bookmark removed');
+      }
+      return;
+    }
+    // Sub-item check
     const subItem = e.target.closest('.sub-item');
     if (!subItem || subItem.dataset.uid === undefined) return;
     const u = subItem.dataset.uid;
