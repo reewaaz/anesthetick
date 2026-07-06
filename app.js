@@ -342,7 +342,6 @@
   function viewCategory(catId) {
     const cat = CURRICULUM.find(c => c.id === catId);
     if (!cat) return viewHome();
-    pushNav('home', null);
     const inner = document.createElement('div');
     inner.className = 'inner';
     inner.innerHTML = html`
@@ -365,8 +364,6 @@
     const all = ALL_TOPICS.find(t => t.id === topicId);
     if (!all) return viewHome();
     const { catId, secId, catName, secName } = all;
-    pushNav('category', catId);
-
     const cat = CURRICULUM.find(c => c.id === catId);
     const sec = cat?.sections.find(s => s.id === secId);
     const topic = sec?.topics.find(t => t.id === topicId);
