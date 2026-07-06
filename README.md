@@ -3,7 +3,7 @@
 > A comprehensive, modern anesthesia study planner for **EDAIC** and **FRCA** exam preparation.
 > The name combines **Anesthesia** + **Tick** (checkmark) — track your progress one tick at a time.
 
-[![PWA](https://img.shields.io/badge/PWA-Ready-blueviolet?style=flat-square)](https://reewaaz.github.io/anesthetic/)
+[![PWA](https://img.shields.io/badge/PWA-Ready-blueviolet?style=flat-square)](https://reewaaz.github.io/anesthetick/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
 ---
@@ -25,13 +25,13 @@
 
 ### Online
 
-Visit **[https://reewaaz.github.io/anesthetic/](https://reewaaz.github.io/anesthetic/)** and start studying immediately.
+Visit **[https://reewaaz.github.io/anesthetick/](https://reewaaz.github.io/anesthetick/)** and start studying immediately.
 
 ### Local Development
 
 ```bash
-git clone https://github.com/reewaaz/anesthetic.git
-cd anesthetic
+git clone https://github.com/reewaaz/anesthetick.git
+cd anesthetick
 # No build step needed — open index.html in a browser
 # Or serve with any HTTP server:
 npx serve .
