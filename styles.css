@@ -2023,48 +2023,36 @@ main::-webkit-scrollbar-thumb {
   background: var(--ok);
   box-shadow: 0 0 6px var(--ok);
 }
-.gh-login,
-.gh-connected {
-  padding: 12px 14px;
-  border-top: 1px solid var(--line);
+.auth-form {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
+  margin-bottom: 16px;
 }
-.gh-login input {
+.auth-form input {
   background: var(--surface);
   border: 1.5px solid var(--line);
   border-radius: var(--radius-sm);
-  padding: 10px 12px;
+  padding: 12px 14px;
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
   outline: none;
   transition: border-color 0.2s;
   font-family: var(--font);
 }
-.gh-login input:focus {
+.auth-form input:focus {
   border-color: var(--accent2);
 }
-.gh-user {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--accent2);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.gh-user svg {
-  width: 14px;
-  height: 14px;
-}
-.gh-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.gh-info {
+.auth-hint {
   font-size: 11px;
   color: var(--muted);
+  line-height: 1.5;
+  margin: 0;
   font-weight: 400;
-  word-break: break-all;
+}
+.auth-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 14px;
+  border-top: 1px solid var(--line);
 }

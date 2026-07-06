@@ -31,6 +31,7 @@
 
   function saveState() {
     try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (_) {}
+    triggerAutoSync();
   }
 
   const saveStateDebounced = (function () {
@@ -38,6 +39,7 @@
     return function () {
       clearTimeout(timer);
       timer = setTimeout(saveState, SAVE_DELAY);
+      triggerAutoSync();
     };
   })();
 
@@ -661,28 +663,42 @@
       </div>
 
       <div class="set-group">
-        <div class="set-group-title">Cloud Sync</div>
-        <div class="set-row">
-          <div class="set-info">
-            <div class="lbl">GitHub Backup</div>
-            <div class="desc">Sync your data across devices via GitHub</div>
+        <div class="set-group-title">Cloud Account</div>
+        ${isCloudConnected() ? html`
+          <div class="set-row">
+            <div class="set-info">
+              <div class="lbl" style="color:var(--ok)">${ICONS.check} Connected</div>
+              <div class="desc">${state.githubUser} &middot; data syncs via GitHub</div>
+            </div>
+            <span class="gh-status connected"></span>
           </div>
-          <span class="gh-status ${isGithubConnected() ? 'connected' : ''}" id="ghStatusDot"></span>
-        </div>
-        <div class="gh-login" id="ghLoginForm" style="${isGithubConnected() ? 'display:none' : ''}">
-          <input type="text" id="ghUserInput" placeholder="GitHub username" value="${state.githubUser || ''}" />
-          <input type="password" id="ghPinInput" placeholder="Personal Access Token (PIN)" />
-          <button class="btn-primary" data-action="gh-connect" style="width:100%;margin-top:6px">${ICONS.download} Connect</button>
-        </div>
-        <div class="gh-connected" id="ghConnected" style="${isGithubConnected() ? '' : 'display:none'}">
-          <div class="gh-user">${ICONS.check} ${state.githubUser}</div>
-          <div class="gh-actions">
-            <button class="btn-ghost" data-action="gh-save" style="font-size:12px">${ICONS.upload} Save to GitHub</button>
-            <button class="btn-ghost" data-action="gh-load" style="font-size:12px">${ICONS.download} Load from GitHub</button>
-            <button class="btn-ghost" data-action="gh-disconnect" style="font-size:12px;color:var(--danger);border-color:color-mix(in srgb, var(--danger) 40%, var(--line))">Disconnect</button>
+          <div class="set-row" style="border-color:transparent">
+            <div class="set-info">
+              <div class="lbl">Sync Now</div>
+              <div class="desc">Upload current data to cloud</div>
+            </div>
+            <button class="btn-ghost" data-action="cloud-sync" style="font-size:12px">${ICONS.upload} Save</button>
           </div>
-          <div class="gh-info">Data syncs to ${state.githubUser}/anesthetick/${GITHUB_DATA_PATH}</div>
-        </div>
+          <div class="set-row" style="border-color:transparent">
+            <div class="set-info">
+              <div class="lbl">Logout</div>
+              <div class="desc">Disconnect cloud account</div>
+            </div>
+            <button class="btn-ghost" data-action="cloud-logout" style="font-size:12px;color:var(--danger);border-color:color-mix(in srgb, var(--danger) 40%, var(--line))">Logout</button>
+          </div>
+        ` : html`
+          <div class="set-row">
+            <div class="set-info">
+              <div class="lbl">Cloud Backup</div>
+              <div class="desc">Sync your data across devices via GitHub</div>
+            </div>
+            <span class="gh-status"></span>
+          </div>
+          <div class="auth-actions">
+            <button class="btn-primary" data-action="cloud-login" style="flex:1">${ICONS.download} Login</button>
+            <button class="btn-ghost" data-action="cloud-register" style="flex:1">Register</button>
+          </div>
+        `}
       </div>
 
       <div class="set-group">
@@ -883,11 +899,11 @@
     });
   }
 
-  /* ── GitHub sync ─────────────────────────────────────────── */
+  /* ── Cloud sync (GitHub) ─────────────────────────────────── */
   const GITHUB_API = 'https://api.github.com';
   const GITHUB_DATA_PATH = 'userdata/data.json';
 
-  function isGithubConnected() {
+  function isCloudConnected() {
     return !!(state.githubUser && state.githubPin);
   }
 
@@ -895,18 +911,22 @@
     return btoa(state.githubUser + ':' + state.githubPin);
   }
 
+  async function testCloudConnection(user, pass) {
+    const auth = btoa(user + ':' + pass);
+    const res = await fetch(GITHUB_API + '/user', { headers: { Authorization: 'Basic ' + auth } });
+    if (!res.ok) throw new Error('Invalid credentials (' + res.status + ')');
+    return (await res.json()).login;
+  }
+
   async function syncToGithub(data) {
-    if (!isGithubConnected()) throw new Error('Not connected to GitHub');
-    const url = GITHUB_API + '/repos/' + state.githubUser + '/' + 'anesthetick' + '/contents/' + GITHUB_DATA_PATH;
+    if (!isCloudConnected()) throw new Error('Not connected');
+    const url = GITHUB_API + '/repos/' + state.githubUser + '/anesthetick/contents/' + GITHUB_DATA_PATH;
     const auth = getGithubAuth();
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
     let sha = null;
     try {
       const existing = await fetch(url, { headers: { Authorization: 'Basic ' + auth } });
-      if (existing.ok) {
-        const ex = await existing.json();
-        sha = ex.sha;
-      }
+      if (existing.ok) { const ex = await existing.json(); sha = ex.sha; }
     } catch (_) {}
     const body = { message: 'sync anesthetick data', content };
     if (sha) body.sha = sha;
@@ -920,12 +940,141 @@
   }
 
   async function syncFromGithub() {
-    if (!isGithubConnected()) throw new Error('Not connected to GitHub');
+    if (!isCloudConnected()) throw new Error('Not connected');
     const url = 'https://raw.githubusercontent.com/' + state.githubUser + '/anesthetick/main/' + GITHUB_DATA_PATH;
     const res = await fetch(url);
-    if (!res.ok) throw new Error('Pull failed: ' + res.status);
-    const data = await res.json();
-    return data;
+    if (!res.ok) throw new Error('Load failed: ' + res.status);
+    return await res.json();
+  }
+
+  async function cloudRegister(user, pass) {
+    const login = await testCloudConnection(user, pass);
+    state.githubUser = user;
+    state.githubPin = pass;
+    saveState();
+    // Create initial data file
+    const data = {
+      progress: state.progress,
+      bookmarks: state.bookmarks,
+      subBookmarks: state.subBookmarks,
+      customSubs: state.customSubs,
+      topicNotes: state.topicNotes
+    };
+    await syncToGithub(data);
+    toast('Registered as ' + login);
+    navigate('home');
+  }
+
+  async function cloudLogin(user, pass) {
+    const login = await testCloudConnection(user, pass);
+    state.githubUser = user;
+    state.githubPin = pass;
+    saveState();
+    // Load remote data
+    const data = await syncFromGithub();
+    if (data.progress) state.progress = data.progress;
+    if (data.bookmarks) state.bookmarks = data.bookmarks;
+    if (data.subBookmarks) state.subBookmarks = data.subBookmarks;
+    if (data.customSubs) state.customSubs = data.customSubs;
+    if (data.topicNotes) state.topicNotes = data.topicNotes;
+    saveState();
+    toast('Welcome back ' + login);
+    navigate('home');
+  }
+
+  function cloudLogout() {
+    state.githubUser = '';
+    state.githubPin = '';
+    saveState();
+    toast('Logged out');
+    navigate('settings');
+  }
+
+  // Auto-sync when data changes (debounced)
+  let autoSyncTimer;
+  function triggerAutoSync() {
+    if (!isCloudConnected()) return;
+    clearTimeout(autoSyncTimer);
+    autoSyncTimer = setTimeout(() => {
+      const data = {
+        progress: state.progress,
+        bookmarks: state.bookmarks,
+        subBookmarks: state.subBookmarks,
+        customSubs: state.customSubs,
+        topicNotes: state.topicNotes
+      };
+      syncToGithub(data).catch(() => {});
+    }, 5000);
+  }
+
+  // Auto-login on start
+  function tryAutoLogin() {
+    if (!isCloudConnected()) return;
+    testCloudConnection(state.githubUser, state.githubPin).then(login => {
+      toast('Cloud: connected as ' + login);
+      // Load remote data (silent merge)
+      syncFromGithub().then(data => {
+        let changed = false;
+        if (data.progress) { state.progress = data.progress; changed = true; }
+        if (data.bookmarks) { state.bookmarks = data.bookmarks; changed = true; }
+        if (data.subBookmarks) { state.subBookmarks = data.subBookmarks; changed = true; }
+        if (data.customSubs) { state.customSubs = data.customSubs; changed = true; }
+        if (data.topicNotes) { state.topicNotes = data.topicNotes; changed = true; }
+        if (changed) saveState();
+      }).catch(() => {});
+    }).catch(() => {
+      // Credentials invalid — clear them
+      state.githubUser = '';
+      state.githubPin = '';
+      saveState();
+    });
+  }
+
+  // Login/Register dialog
+  function showAuthDialog(mode) {
+    return new Promise(resolve => {
+      const backdrop = document.createElement('div');
+      backdrop.className = 'dialog-backdrop';
+      const dlg = document.createElement('div');
+      dlg.className = 'dialog';
+      dlg.style.maxWidth = '360px';
+      dlg.innerHTML = `
+        <h3>${mode === 'register' ? 'Create Cloud Account' : 'Cloud Login'}</h3>
+        <p style="margin-bottom:16px">${mode === 'register'
+          ? 'Your data will be stored securely in your GitHub repository. A Personal Access Token with <strong>repo</strong> scope is required.'
+          : 'Sign in to sync your data across devices.'}</p>
+        <div class="auth-form">
+          <input type="text" id="authUser" placeholder="GitHub username" autocomplete="username" />
+          <input type="password" id="authPass" placeholder="Personal Access Token (PIN)" autocomplete="current-password" />
+          <p class="auth-hint">${mode === 'register'
+            ? 'Create a token at GitHub &rarr; Settings &rarr; Developer settings &rarr; Personal access tokens &rarr; Tokens (classic) with <strong>repo</strong> scope.'
+            : 'Enter the same credentials you used to register.'}</p>
+        </div>
+        <div class="dialog-actions" style="justify-content:stretch">
+          <button class="btn-ghost" data-dlg="cancel" style="flex:1">Cancel</button>
+          <button class="btn-primary" data-dlg="confirm" style="flex:1">${mode === 'register' ? 'Register' : 'Login'}</button>
+        </div>`;
+      backdrop.appendChild(dlg);
+      document.body.appendChild(backdrop);
+      requestAnimationFrame(() => backdrop.classList.add('show'));
+      const close = result => {
+        backdrop.classList.remove('show');
+        setTimeout(() => backdrop.remove(), 300);
+        resolve(result);
+      };
+      backdrop.addEventListener('click', e => { if (e.target === backdrop) close(null); });
+      dlg.querySelector('[data-dlg="cancel"]').addEventListener('click', () => close(null));
+      dlg.querySelector('[data-dlg="confirm"]').addEventListener('click', () => {
+        const user = dlg.querySelector('#authUser').value.trim();
+        const pass = dlg.querySelector('#authPass').value.trim();
+        if (user && pass) close({ user, pass });
+      });
+      // Enter key in password field triggers confirm
+      dlg.querySelector('#authPass').addEventListener('keydown', e => {
+        if (e.key === 'Enter') dlg.querySelector('[data-dlg="confirm"]').click();
+      });
+      setTimeout(() => dlg.querySelector('#authUser').focus(), 350);
+    });
   }
 
   /* ── event delegation ───────────────────────────────────── */
@@ -1140,27 +1289,31 @@
         return;
       }
 
-      // GitHub actions
-      if (action === 'gh-connect') {
-        const user = document.getElementById('ghUserInput')?.value.trim();
-        const pin = document.getElementById('ghPinInput')?.value.trim();
-        if (!user || !pin) { toast('Enter both username and token'); return; }
-        toast('Verifying connection…');
-        const auth = btoa(user + ':' + pin);
-        fetch('https://api.github.com/user', { headers: { Authorization: 'Basic ' + auth } }).then(r => {
-          if (!r.ok) throw new Error('Invalid credentials (' + r.status + ')');
-          state.githubUser = user;
-          state.githubPin = pin;
-          saveState();
-          toast('Connected to GitHub');
-          navigate('settings');
-        }).catch(err => {
-          toast('Connection failed: ' + err.message);
+      // Cloud account actions
+      if (action === 'cloud-login') {
+        showAuthDialog('login').then(creds => {
+          if (!creds) return;
+          toast('Connecting…');
+          cloudLogin(creds.user, creds.pass).catch(err => toast('Login failed: ' + err.message));
         });
         return;
       }
-      if (action === 'gh-save') {
-        toast('Saving to GitHub…');
+      if (action === 'cloud-register') {
+        showAuthDialog('register').then(creds => {
+          if (!creds) return;
+          toast('Registering…');
+          cloudRegister(creds.user, creds.pass).catch(err => toast('Register failed: ' + err.message));
+        });
+        return;
+      }
+      if (action === 'cloud-logout') {
+        showConfirm('Logout', 'Disconnect cloud account? Local data will be kept.', 'Logout', 'Cancel').then(ok => {
+          if (ok) cloudLogout();
+        });
+        return;
+      }
+      if (action === 'cloud-sync') {
+        toast('Saving…');
         const data = {
           progress: state.progress,
           bookmarks: state.bookmarks,
@@ -1168,29 +1321,7 @@
           customSubs: state.customSubs,
           topicNotes: state.topicNotes
         };
-        syncToGithub(data).then(() => toast('Saved to GitHub')).catch(err => toast('Save failed: ' + err.message));
-        return;
-      }
-      if (action === 'gh-load') {
-        toast('Loading from GitHub…');
-        syncFromGithub().then(data => {
-          if (data.progress) state.progress = data.progress;
-          if (data.bookmarks) state.bookmarks = data.bookmarks;
-          if (data.subBookmarks) state.subBookmarks = data.subBookmarks;
-          if (data.customSubs) state.customSubs = data.customSubs;
-          if (data.topicNotes) state.topicNotes = data.topicNotes;
-          saveState();
-          toast('Data loaded from GitHub');
-          navigate('home');
-        }).catch(err => toast('Load failed: ' + err.message));
-        return;
-      }
-      if (action === 'gh-disconnect') {
-        state.githubUser = '';
-        state.githubPin = '';
-        saveState();
-        toast('Disconnected');
-        navigate('settings');
+        syncToGithub(data).then(() => toast('Saved to cloud')).catch(err => toast('Save failed: ' + err.message));
         return;
       }
 
@@ -1449,4 +1580,5 @@
 
   /* ── init ───────────────────────────────────────────────── */
   navigate('home');
+  tryAutoLogin();
 })();
