@@ -11,10 +11,18 @@
   function loadState() {
     try {
       const raw = localStorage.getItem(LS_KEY);
-      if (raw) return JSON.parse(raw);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        // Migrate old notes key to topicNotes
+        if (parsed.notes && !parsed.topicNotes) {
+          parsed.topicNotes = parsed.notes;
+          delete parsed.notes;
+        }
+        return parsed;
+      }
     } catch (_) {}
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    return { progress: {}, bookmarks: [], subBookmarks: [], customSubs: {}, notes: {}, installDismissed: false, theme: prefersDark ? 'dark' : 'light' };
+    return { progress: {}, bookmarks: [], subBookmarks: [], customSubs: {}, topicNotes: {}, installDismissed: false, theme: prefersDark ? 'dark' : 'light' };
   }
 
   function saveState() {
@@ -128,19 +136,6 @@
     saveStateDebounced();
   }
 
-  function getSubNotes(uidStr) {
-    return state.notes[uidStr] || '';
-  }
-
-  function setSubNotes(uidStr, text) {
-    if (text.trim()) {
-      state.notes[uidStr] = text;
-    } else {
-      delete state.notes[uidStr];
-    }
-    saveStateDebounced();
-  }
-
   function getCustomSubs(topicId) {
     return state.customSubs[topicId] || [];
   }
@@ -156,6 +151,19 @@
       state.customSubs[topicId].splice(idx, 1);
       saveStateDebounced();
     }
+  }
+
+  function getTopicNotes(topicId) {
+    return state.topicNotes[topicId] || '';
+  }
+
+  function setTopicNotes(topicId, text) {
+    if (text.trim()) {
+      state.topicNotes[topicId] = text;
+    } else {
+      delete state.topicNotes[topicId];
+    }
+    saveStateDebounced();
   }
 
   function flattenTopics() {
@@ -273,7 +281,6 @@
     const done = isDone(u);
     const subLinks = topic.subLinks && topic.subLinks[idx] ? topic.subLinks[idx] : null;
     const sb = isSubBookmarked(u);
-    const note = getSubNotes(u);
     const customAttr = isCustom ? ' data-custom="1"' : '';
     return html`
       <div class="sub-item ${done ? 'done' : ''}" data-uid="${u}"${customAttr}>
@@ -281,11 +288,11 @@
         <div class="sub-context">
           <span class="s-name">${sub}</span>
           ${subLinks ? html`<div class="sub-links">${subLinks.split(',').slice(0,2).map(sl => html`<a href="${sl.trim()}" target="_blank" rel="noopener">${ICONS.external} ${linkLabel(sl.trim())}</a>`).join('')}</div>` : ''}
-          <div class="sub-notes">
-            <textarea placeholder="Notes…" data-note="${u}" spellcheck="false">${note}</textarea>
-          </div>
         </div>
-        <button class="sub-bookmark ${sb ? 'active' : ''}" data-action="sub-bookmark" data-sub-uid="${u}">${sb ? ICONS['bookmark-filled'] : ICONS.bookmark}</button>
+        <div class="sub-actions">
+          ${isCustom ? html`<button class="sub-del" data-action="del-custom-sub" data-topic-id="${topic.id}" data-custom-idx="${idx}">✕</button>` : ''}
+          <button class="sub-bookmark ${sb ? 'active' : ''}" data-action="sub-bookmark" data-sub-uid="${u}">${sb ? ICONS['bookmark-filled'] : ICONS.bookmark}</button>
+        </div>
       </div>
     `;
   }
@@ -364,6 +371,7 @@
     const bm = isBookmarked(topicId);
     const customSubs = getCustomSubs(topicId);
     const allSubs = [...(topic.sub || []), ...customSubs];
+    const topicNote = getTopicNotes(topicId);
 
     const inner = document.createElement('div');
     inner.className = 'inner';
@@ -399,6 +407,10 @@
           <button class="btn-ghost" data-action="uncheck-all">Uncheck all</button>
         </div>
       ` : html`<p class="muted" style="margin:30px 0;font-weight:400">No learning objectives listed.</p>`}
+      <div class="topic-notes">
+        <label class="topic-notes-label">Notes</label>
+        <textarea placeholder="Write notes for this topic…" data-topic-note="${topicId}" spellcheck="false">${topicNote}</textarea>
+      </div>
     `;
     return inner;
   }
@@ -499,15 +511,68 @@
   function viewBookmarks() {
     const inner = document.createElement('div');
     inner.className = 'inner';
+
+    // Topic-level bookmarks
     const bmTopics = ALL_TOPICS.filter(t => isBookmarked(t.id));
-    if (!bmTopics.length) {
-      inner.innerHTML = '<div class="empty"><p>No saved topics yet.</p><p style="font-size:12px;margin-top:8px;font-weight:400">Tap the bookmark icon on any topic to save it here.</p></div>';
-    } else {
-      inner.innerHTML = html`
-        <div class="list-title">Saved Topics</div>
-        <div>${bmTopics.map(t => renderTopicItem(t)).join('')}</div>
-      `;
+
+    // Sub-item bookmarks grouped by parent topic
+    const subBmMap = {};
+    for (const uidStr of state.subBookmarks) {
+      const parts = uidStr.split('/');
+      if (parts.length === 4) {
+        const [catId, secId, topicId, subIdx] = parts;
+        const key = `${catId}|${secId}|${topicId}`;
+        if (!subBmMap[key]) subBmMap[key] = [];
+        subBmMap[key].push(uidStr);
+      }
     }
+
+    const hasBm = bmTopics.length > 0 || Object.keys(subBmMap).length > 0;
+    if (!hasBm) {
+      inner.innerHTML = '<div class="empty"><p>No saved topics yet.</p><p style="font-size:12px;margin-top:8px;font-weight:400">Tap the bookmark icon on any topic to save it here.</p></div>';
+      return inner;
+    }
+
+    let htmlStr = '';
+
+    // Topic bookmarks
+    if (bmTopics.length) {
+      htmlStr += '<div class="list-title">Saved Topics</div>';
+      htmlStr += '<div>' + bmTopics.map(t => renderTopicItem(t)).join('') + '</div>';
+    }
+
+    // Sub-item bookmarks
+    if (Object.keys(subBmMap).length) {
+      htmlStr += '<div class="list-title" style="margin-top:20px">Saved Sub-items</div>';
+      for (const key of Object.keys(subBmMap)) {
+        const [catId, secId, topicId] = key.split('|');
+        const topic = ALL_TOPICS.find(t => t.id === topicId);
+        if (!topic) continue;
+        htmlStr += '<div class="saved-sub-group" data-topic-id="' + topicId + '">';
+        htmlStr += '<div class="saved-sub-cat">' + topic.catName + ' &middot; ' + topic.secName + '</div>';
+        htmlStr += '<div class="saved-sub-topic">' + topic.name + '</div>';
+        for (const uidStr of subBmMap[key]) {
+          const parts = uidStr.split('/');
+          const subIdx = parseInt(parts[3]);
+          const customOffset = subIdx >= 1000;
+          const actualIdx = customOffset ? subIdx - 1000 : subIdx;
+          const customSubs = getCustomSubs(topicId);
+          const subText = customOffset
+            ? (customSubs[actualIdx] || '(deleted)')
+            : ((topic.sub && topic.sub[actualIdx]) || '(deleted)');
+          const doneClass = isDone(uidStr) ? ' done' : '';
+          const sb = isSubBookmarked(uidStr);
+          htmlStr += '<div class="sub-item' + doneClass + '" data-uid="' + uidStr + '">';
+          htmlStr += '<div class="check">' + ICONS.check + '</div>';
+          htmlStr += '<div class="sub-context"><span class="s-name">' + subText + '</span></div>';
+          htmlStr += '<button class="sub-bookmark active" data-action="sub-bookmark" data-sub-uid="' + uidStr + '">' + ICONS['bookmark-filled'] + '</button>';
+          htmlStr += '</div>';
+        }
+        htmlStr += '</div>';
+      }
+    }
+
+    inner.innerHTML = htmlStr;
     return inner;
   }
 
@@ -715,6 +780,7 @@
     }
     const navView = ['home', 'bookmarks', 'settings'].includes(view) ? view : 'home';
     updateNav(navView);
+    history.pushState({ view, data }, '');
   }
 
   function updateNav(activeView) {
@@ -828,8 +894,8 @@
       return;
     }
 
-    // Topic click (click on topic row)
-    if (target.dataset.topicId && !target.dataset.action) {
+    // Topic click (click on topic row, not inside sub-item)
+    if (target.dataset.topicId && !target.dataset.action && !e.target.closest('.sub-item, .sub-bookmark, .sub-del')) {
       pushNav('topic', target.dataset.topicId);
       sfxNav();
       navigate('topic', target.dataset.topicId);
@@ -849,6 +915,18 @@
         input.value = '';
         navigate('topic', topicId);
         toast('Added: ' + text);
+      }
+      return;
+    }
+
+    // Delete custom sub-item
+    if (action === 'del-custom-sub') {
+      const topicId = target.dataset.topicId;
+      const idx = parseInt(target.dataset.customIdx);
+      if (!isNaN(idx) && topicId) {
+        removeCustomSub(topicId, idx);
+        navigate('topic', topicId);
+        toast('Custom objective removed');
       }
       return;
     }
@@ -965,19 +1043,22 @@
 
     // Reset actions in settings
     if (action === 'reset-progress') {
+      if (!confirm('Reset all progress? This cannot be undone.')) return;
       state.progress = {};
       saveState();
       toast('Progress reset');
       return;
     }
     if (action === 'reset-bookmarks') {
+      if (!confirm('Clear all bookmarks? This cannot be undone.')) return;
       state.bookmarks = [];
       saveState();
       toast('Bookmarks cleared');
       return;
     }
     if (action === 'reset-all') {
-      state = { progress: {}, bookmarks: [], installDismissed: false, theme: 'dark' };
+      if (!confirm('Wipe all local data? This cannot be undone.')) return;
+      state = { progress: {}, bookmarks: [], subBookmarks: [], customSubs: {}, topicNotes: {}, installDismissed: false, theme: 'dark' };
       applyTheme('dark');
       saveState();
       toast('All data wiped');
@@ -990,6 +1071,8 @@
   $view.addEventListener('click', e => {
     const subItem = e.target.closest('.sub-item');
     if (!subItem || subItem.dataset.uid === undefined) return;
+    // Don't toggle when clicking bookmark or delete buttons
+    if (e.target.closest('.sub-bookmark, .sub-del, [data-action]')) return;
     const u = subItem.dataset.uid;
     const wasDone = isDone(u);
     toggleDone(u);
@@ -1135,10 +1218,10 @@
   const $installBanner = $('#installBanner');
   let deferredPrompt;
 
-  // Notes textarea live save
+  // Topic notes textarea live save
   document.addEventListener('input', e => {
-    const ta = e.target.closest('textarea[data-note]');
-    if (ta) setSubNotes(ta.dataset.note, ta.value);
+    const ta = e.target.closest('textarea[data-topic-note]');
+    if (ta) setTopicNotes(ta.dataset.topicNote, ta.value);
   });
 
   window.addEventListener('beforeinstallprompt', e => {
@@ -1170,9 +1253,12 @@
     toast('Install option available in Settings');
   });
 
+  /* ── Browser back button ────────────────────────────────── */
+  window.addEventListener('popstate', () => goBack());
+
   /* ── Ripple + global interaction ──────────────────────── */
   document.addEventListener('pointerdown', e => {
-    const btn = e.target.closest('button, .navbtn, .cat, .topic, .sub-item, .result, .link-item, .set-row, .ref-card.clickable');
+    const btn = e.target.closest('button, .navbtn, .cat, .topic, .sub-item, .result, .link-item, .set-row, .ref-card.clickable, .saved-sub-topic, .saved-sub-group');
     if (!btn) return;
     if (!btn.classList.contains('ripple-host')) btn.classList.add('ripple-host');
     const r = document.createElement('span');
