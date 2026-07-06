@@ -1056,6 +1056,11 @@
     r.addEventListener('animationend', () => r.remove());
   });
 
+  /* ── Service worker registration ────────────────────────── */
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
   /* ── init ───────────────────────────────────────────────── */
   navigate('home');
 })();
