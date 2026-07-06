@@ -1088,18 +1088,14 @@
   }
 
   function goBack() {
-    if (navHistory.length < 2) {
+    if (navHistory.length === 0) {
       showConfirm('Exit Anesthetick?', 'Your progress is saved locally on this device.', 'Exit', 'Stay').then(ok => {
-        if (ok) {
-          // Let the browser navigation proceed
-        } else {
-          history.pushState(null, '');
-        }
+        if (!ok) history.pushState(null, '');
       });
       return;
     }
-    navHistory.pop(); // current
-    const prev = navHistory.pop() || { view: 'home' };
+    navHistory.pop(); // current view
+    const prev = navHistory.length > 0 ? navHistory[navHistory.length - 1] : { view: 'home' };
     navigate(prev.view, prev.data);
   }
 
@@ -1555,7 +1551,16 @@
   });
 
   /* ── Browser back button ────────────────────────────────── */
-  window.addEventListener('popstate', () => goBack());
+  let exiting = false;
+  window.addEventListener('popstate', e => {
+    if (exiting) return;
+    if (navHistory.length > 1) { goBack(); return; }
+    // On home page — push state to stay, then ask
+    history.pushState(null, '');
+    showConfirm('Exit Anesthetick?', 'Your progress is saved locally on this device.', 'Exit', 'Stay').then(ok => {
+      if (ok) { exiting = true; history.back(); }
+    });
+  });
 
   /* ── Ripple + global interaction ──────────────────────── */
   document.addEventListener('pointerdown', e => {
