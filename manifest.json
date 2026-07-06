@@ -2,7 +2,7 @@
   "name": "Anesthetick",
   "short_name": "Anesthetick",
   "description": "Comprehensive anesthesia study planner for EDAIC and FRCA preparation.",
-  "start_url": "/Anesthetick/index.html",
+  "start_url": "https://reewaaz.github.io/Anesthetick/index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0f1117",
