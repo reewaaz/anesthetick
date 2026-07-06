@@ -14,7 +14,8 @@
       const raw = localStorage.getItem(LS_KEY);
       if (raw) return JSON.parse(raw);
     } catch (_) {}
-    return { progress: {}, bookmarks: [], installDismissed: false, theme: 'dark' };
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    return { progress: {}, bookmarks: [], installDismissed: false, theme: prefersDark ? 'dark' : 'light' };
   }
 
   function saveState() {
@@ -34,7 +35,7 @@
     document.documentElement.setAttribute('data-theme', theme);
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) {
-      meta.content = theme === 'light' ? '#ffffff' : '#0f172a';
+      meta.content = theme === 'light' ? '#f5f6fa' : '#0f1117';
     }
   }
 
