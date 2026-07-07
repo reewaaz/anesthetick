@@ -547,6 +547,13 @@ main::-webkit-scrollbar-thumb {
   color: transparent;
 }
 
+.topic .topic-ic {
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  opacity: 0.7;
+}
+
 .topic.done .check {
   background: var(--ok);
   border-color: var(--ok);

@@ -1,5 +1,6 @@
 // Anesthetick — Comprehensive Anesthesia Curriculum Database
-// Target: EDAIC / FRCA
+// Merged & curated from data.js + datass.js
+// Target: EDAIC Part I & II, Primary FRCA, Final FRCA
 // References legend:
 //   MM = Morgan & Mikhail's Clinical Anesthesiology (6th ed)
 //   MIL = Miller's Anesthesia (10th ed)
@@ -7,3083 +8,1051 @@
 //   OX = OpenAnesthesia (openanesthesia.org)
 //   ATOTW = Anaesthesia Tutorial of the Week (WFSA/AnaesthesiaUK)
 //   PS = PhysiologyWeb / Free open physiology texts
-//   GS = GeeksforGeeks/NYSORA free regional resources
-//   LITFL = Life in the Fast Lane (education)
+//   RCoA G1-G4 = RCoA 2021 Curriculum (G1: Generic, G2: Physics/Equipment, G3: Pharmacology, G4: Clinical)
+//   MIL Ch = Miller's Anesthesia chapter
+//   MM Ch = Morgan & Mikhail chapter
+//   OX Pain = OpenAnesthesia pain module
+//   OX Ob = OpenAnesthesia obstetric module
+//   RCUK = Resuscitation Council UK
+//   ERC = European Resuscitation Council
+//   SSC = Surviving Sepsis Campaign
 
 const CURRICULUM = [
-{
-  id: "equipment",
-  name: "Anesthetic Equipment & Monitoring",
-  icon: "gauge",
-  color: "#3b82f6",
-  sections: [
-    {
-      id: "workstation",
-      name: "The Anesthesia Workstation",
-      topics: [
-        {
-          id: "machine-overview",
-          name: "Workstation overview & standards",
-          refs: ["MM Ch.4", "MIL Ch.25", "DD Ch.1-4"],
-          sub: [
-            "ASTM / ISO 80601-2-13 standard",
-            "Components: high/intermediate/low pressure systems",
-            "Pre-use checklist (ASA 2008)",
-            "Newer workstation self-tests & limitations",
-            "Data streams & integration"
-          ],
-          subLinks: ["https://litfl.com/","","https://www.apsf.org/","",""],
-        },
-        {
-          id: "gas-supply",
-          name: "Medical gas supply",
-          refs: ["MM Ch.4", "DD Ch.1-2", "MIL Ch.25"],
-          sub: [
-            "Central pipeline supply (color coding, DISS, NIST)",
-            "Cylinder construction & marking",
-            "Pin index safety system (PISS)",
-            "Hanger yoke & check valves",
-            "Pressure regulation & regulators",
-            "Oxygen supply failure devices (fail-safe, proportioning)",
-            "O2 failure alarm"
-          ],
-          subLinks: ["","","","","","",""],
-        },
-        {
-          id: "flowmeters",
-          name: "Flowmeters & flow control",
-          refs: ["DD Ch.5", "MM Ch.4"],
-          sub: [
-            "Variable-orifice (rotameter) physics",
-            "Turbulent vs laminar flow (Hagen-Poiseuille)",
-            "Sequence of flowmeter arrangement",
-            "Problems: sticking bobbin, static, leaks"
-          ],
-          subLinks: ["","","",""],
-        },
-        {
-          id: "vaporizers",
-          name: "Vaporizers",
-          refs: ["DD Ch.7-8", "MM Ch.4", "MIL Ch.26"],
-          sub: [
-            "Physics of vaporization (latent heat, vapor pressure)",
-            "Variable bypass / plenum vaporizers",
-            "Temperature compensation (bimetallic strip)",
-            "Vaporizer interlock mechanism",
-            "Measured flow vaporizer (Desflurane Tec 6)",
-            "Vaporizer-in-circuit (VIC) draw-over",
-            "Effects of altitude & flow on output",
-            "Tipping / overfilling hazards"
-          ],
-          subLinks: ["","","","","","","","https://litfl.com/"],
-        },
-        {
-          id: " scavenging",
-          name: "Scavenging systems",
-          refs: ["DD Ch.18", "MM Ch.4"],
-          sub: [
-            "Purpose & occupational exposure limits",
-            "Components: collecting, transferring, receiving, disposal",
-            "Open vs closed scavenging interface",
-            "Pressure relief (positive & negative)",
-            "Room ventilation requirements"
-          ],
-          subLinks: ["","https://www.stopbang.ca/","","",""],
-        },
-        {
-          id: "machine-checks",
-          name: "Machine checkout & safety",
-          refs: ["MM Ch.4", "ASA 2008 checkout"],
-          sub: [
-            "High-pressure system leak test",
-            "Low-pressure system leak test",
-            "Circle system leak test",
-            "Ventilator & alarm checks",
-            "Common gas outlet verification"
-          ],
-          subLinks: ["","","","",""],
-        }
-      ]
-    },
-    {
-      id: "breathing-systems",
-      name: "Breathing Systems",
-      topics: [
-        {
-          id: "circle",
-          name: "Circle system",
-          refs: ["DD Ch.13", "MM Ch.4"],
-          sub: [
-            "Components: unidirectional valves, CO2 absorber, reservoir bag",
-            "Fresh gas decoupling",
-            "Advantages & disadvantages",
-            "Soda lime & absorbents (Amsorb, lithium hydroxide)",
-            "CO absorption compounds & degradation products (compound A, carbon monoxide)",
-            "Malfunction of unidirectional valves"
-          ],
-          subLinks: ["","","","","",""],
-        },
-        {
-          id: "mapleson",
-          name: "Mapleson circuits (A-F)",
-          refs: ["DD Ch.12", "MM Ch.4", "ATOTW"],
-          sub: [
-            "Mapleson A (Magill) — spontaneous",
-            "Mapleson D, E, F — controlled ventilation",
-            "Fresh gas flow requirements",
-            "Bain circuit (coaxial Mapleson D)",
-            "Lack & Humphrey circuits"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "drawover",
-          name: "Draw-over & emergency systems",
-          refs: ["MIL Ch.27", "MM Ch.4"],
-          sub: [
-            "Draw-over vaporizer principles",
-            "Epstein Mackintosh Oxford (EMO)",
-            "Pneupac / transport ventilators",
-            "Gloved bag / WHO emergency setups"
-          ],
-          subLinks: ["","","",""],
-        }
-      ]
-    },
-    {
-      id: "ventilators",
-      name: "Ventilators",
-      topics: [
-        {
-          id: "vent-classification",
-          name: "Classification & physics",
-          refs: ["DD Ch.14", "MM Ch.4"],
-          sub: [
-            "Power source, drive mechanism, cycling",
-            "Bellows: ascending vs descending",
-            "Pressure vs volume control",
-            "Tidal volume compensation (compressible volume)",
-            "Leaks in descending bellows (hidden)"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "advanced-vents",
-          name: "Advanced modes & ICU ventilators",
-          refs: ["MIL Ch.103", "MM Ch.4"],
-          sub: [
-            "Pressure support, SIMV, PCV, VCV",
-            "PRVC, APV, auto-flow",
-            "Non-invasive ventilation interfaces",
-            "High-flow nasal cannula principles"
-          ],
-          subLinks: ["","","",""],
-        }
-      ]
-    },
-    {
-      id: "airway-equip",
-      name: "Airway Equipment",
-      topics: [
-        {
-          id: "masks-supraglottic",
-          name: "Masks & supraglottic airways",
-          refs: ["DD Ch.21", "MM Ch.19", "MIL Ch.54"],
-          sub: [
-            "Face mask design & sizing",
-            "LMA Classic / ProSeal / Supreme / Flexible",
-            "i-gel, Air-Q, Ambu AuraGain",
-            "Insertion technique & cuff pressure",
-            "Indications, contraindications, complications"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "eett",
-          name: "Endotracheal tubes & tracheostomy",
-          refs: ["DD Ch.22", "MM Ch.19"],
-          sub: [
-            "ETT construction (PVC, spiral wire, silicone)",
-            "Murphy eye, Cole tube, RAE tubes",
-            "Double-lumen & bronchial blockers",
-            "Cuff design (high vs low pressure), cuff pressure monitoring",
-            "Tube exchange catheters",
-            "Tracheostomy tube types (Shiley, Portex)"
-          ],
-          subLinks: ["","","","","",""],
-        },
-        {
-          id: "laryngoscopes",
-          name: "Laryngoscopes & videolaryngoscopy",
-          refs: ["DD Ch.23", "MM Ch.19", "MIL Ch.55"],
-          sub: [
-            "Macintosh & Miller blades",
-            "Direct laryngoscopy technique",
-            "Video laryngoscopes: GlideScope, C-MAC, McGrath, AirTraq",
-            "Hyperangulated vs standard blades",
-            "Rigid fiberoptic (Bullard, Upsherscope)",
-            "Channelled vs non-channelled devices"
-          ],
-          subLinks: ["","","","https://litfl.com/","https://litfl.com/",""],
-        },
-        {
-          id: "fiberoptic",
-          name: "Flexible fiberoptic & awake intubation",
-          refs: ["MM Ch.19", "MIL Ch.55"],
-          sub: [
-            "Fiberscope construction",
-            "Indications for awake FOB intubation",
-            "Topicalization techniques & nerve blocks",
-            "Antisialogogue use",
-            "Troubleshooting & failure rescue"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "emergency-airway",
-          name: "Emergency airway devices",
-          refs: ["MM Ch.19", "DD Ch.24"],
-          sub: [
-            "LMA as rescue / FOB conduit",
-            "Intubating LMA (Fastrach)",
-            "Esophageal-tracheal Combitube",
-            "Laryngeal tube (LT)",
-            "Cricothyrotomy kits (Melker, QuickTrach)",
-            "Cannot intubate cannot oxygenate (CICO) algorithm"
-          ],
-          subLinks: ["","","","","","https://www.das.uk.com/"],
-        },
-        {
-          id: "humidification",
-          name: "Humidification & filters",
-          refs: ["DD Ch.15", "MM Ch.4"],
-          sub: [
-            "Heat and moisture exchangers (HME)",
-            "Heated humidifiers",
-            "Bacterial/viral filters",
-            "Ideal properties"
-          ],
-          subLinks: ["","","",""],
-        }
-      ]
-    },
-    {
-      id: "monitoring",
-      name: "Monitoring",
-      topics: [
-        {
-          id: "monitor-standards",
-          name: "Standards & basic monitoring",
-          refs: ["MM Ch.5", "ASA standards", "MIL Ch.47"],
-          sub: [
-            "ASA standards for basic monitoring",
-            "Continuous presence vs electronic",
-            "Alarms & prioritization",
-            "Capnography as mandatory",
-            "Vigilance & situational awareness"
-          ],
-          subLinks: ["https://litfl.com/","","","https://litfl.com/","https://www.openanesthesia.org/"],
-        },
-        {
-          id: "bp-monitoring",
-          name: "Blood pressure monitoring",
-          refs: ["MM Ch.5", "MIL Ch.47"],
-          sub: [
-            "Non-invasive: oscillometry (DINAMAP)",
-            "Cuff sizing errors",
-            "Arterial line: insertion, waveform, damping & resonance",
-            "Allen test & complications",
-            "Square wave test interpretation",
-            "Mean arterial pressure calculation"
-          ],
-          subLinks: ["","","","","",""],
-        },
-        {
-          id: "ecg",
-          name: "Electrocardiography",
-          refs: ["MM Ch.5", "MIL Ch.48"],
-          sub: [
-            "Lead systems (3, 5, 12 lead)",
-            "Waveform analysis & intervals",
-            "Arrhythmia recognition",
-            "Ischemia detection (lead V5, II)",
-            "Pacemaker spikes"
-          ],
-          subLinks: ["","","https://litfl.com/","",""],
-        },
-        {
-          id: "pulse-ox",
-          name: "Pulse oximetry",
-          refs: ["MM Ch.5", "MIL Ch.49"],
-          sub: [
-            "Beer-Lambert law & red/IR absorption",
-            "Oxy- & deoxyhemoglobin spectra",
-            "Functional vs fractional saturation",
-            "Causes of error: dyshemoglobins (COHb, MetHb), nail polish, motion, low perfusion",
-            "Masimo SET & signal extraction",
-            "Plethysmographic variability index (PVI)"
-          ],
-          subLinks: ["","","","","",""],
-        },
-        {
-          id: "capnography",
-          name: "Capnography & gas analysis",
-          refs: ["MM Ch.5", "MIL Ch.50", "DD Ch.16"],
-          sub: [
-            "Infrared absorption spectroscopy",
-            "Mainstream vs sidestream",
-            "Normal capnogram phases",
-            "Causes of altered EtCO2 (high, low, absent, rising)",
-            "Agents analysis (Raman, mass spec, photoacoustic)",
-            "V/Q relationships & PaCO2-EtCO2 gradient"
-          ],
-          subLinks: ["","","","","","https://derangedphysiology.com/main/required-reading/physiology"],
-        },
-        {
-          id: "cvp-pa",
-          name: "Central venous & pulmonary artery catheters",
-          refs: ["MM Ch.5", "MIL Ch.51"],
-          sub: [
-            "CVC insertion sites & Seldinger technique",
-            "CVP waveform (a, c, v, x, y)",
-            "Complications (pneumothorax, arterial puncture, infection)",
-            "PA catheter: insertion, pressures, wedge",
-            "Derived parameters (CO, SVR, PVR, oxygen delivery)",
-            "Indications & controversy (ESCAPE trial)",
-            "Ultrasound guidance"
-          ],
-          subLinks: ["","","","","","",""],
-        },
-        {
-          id: "cardiac-output",
-          name: "Cardiac output monitoring",
-          refs: ["MM Ch.5", "MIL Ch.52"],
-          sub: [
-            "Thermodilution (bolus & continuous)",
-            "Fick principle",
-            "Arterial pulse contour (PiCCO, LiDCO, FloTrac/Vigileo)",
-            "Esophageal Doppler",
-            "Transesophageal echo (basic)",
-            "Bioimpedance & bioreactance"
-          ],
-          subLinks: ["","","","","",""],
-        },
-        {
-          id: "eeg-bis",
-          name: "Neurologic monitoring",
-          refs: ["MM Ch.5", "MIL Ch.53"],
-          sub: [
-            "BIS & entropy monitors",
-            "Processed vs raw EEG",
-            "Evoked potentials (SSEP, MEP, BAEP)",
-            "Cerebral oximetry (NIRS, rSO2)",
-            "Limitations of depth monitors"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "neuromuscular",
-          name: "Neuromuscular monitoring",
-          refs: ["MM Ch.5", "MIL Ch.53"],
-          sub: [
-            "Modes: TOF, double-burst, tetanus, post-tetanic count",
-            "Sites: ulnar, facial, posterior tibial",
-            "Acceleromyography vs mechanomyography",
-            "Reversal criteria (TOF ratio ≥0.9)"
-          ],
-          subLinks: ["","","","https://www.openanesthesia.org/"],
-        },
-        {
-          id: "temp-glucose",
-          name: "Temperature, glucose & point of care",
-          refs: ["MM Ch.5", "MIL Ch.47"],
-          sub: [
-            "Thermistor/thermocouple sites",
-            "Core vs peripheral temperature",
-            "Glucose measurement & perioperative",
-            "ABG, lactate, hemoglobin point-of-care",
-            "Thromboelastography (TEG/ROTEM)"
-          ],
-          subLinks: ["","","","","https://www.openanesthesia.org/"],
-        },
-        {
-          id: "ultrasound",
-          name: "Ultrasound basics",
-          refs: ["MM Ch.5", "MIL Ch.56"],
-          sub: [
-            "Piezoelectric effect & frequency/depth tradeoff",
-            "Modes: B, M, Doppler",
-            "Probes: linear, curvilinear, phased array",
-          ],
-          subLinks: ["","",""],
-        }
-      ]
-    },
-    {
-      id: "electrical-safety",
-      name: "Electrical & Environmental Safety",
-      topics: [
-        {
-          id: "electrical",
-          name: "Electrical safety",
-          refs: ["DD Ch.19", "MM Ch.4"],
-          sub: [
-            "Macroshock & microshock",
-            "Line isolation monitors & isolated power",
-            "Ground fault circuit interrupters",
-            "Leakage current",
-            "Equipotential grounding in OR"
-          ],
-          subLinks: ["https://litfl.com/","","","",""],
-        },
-        {
-          id: "fires",
-          name: "OR fires & environmental",
-          refs: ["MM Ch.4", "ASA fire algorithm"],
-          sub: [
-            "Fire triad: oxidizer, fuel, ignition",
-            "Laser & electrosurgery plume",
-            "Bowel prep & methane explosion risk",
-            "Fire risk assessment score",
-            "Waste anesthetic gas exposure limits"
-          ],
-          subLinks: ["https://www.apsf.org/","","","",""],
-        }
-      ]
-    }
-  ]
-},
-{
-  id: "pharmacology",
-  name: "Pharmacology",
-  icon: "flask",
-  color: "#10b981",
-  sections: [
-    {
-      id: "pkpd",
-      name: "Pharmacokinetics & Pharmacodynamics",
-      topics: [
-        {
-          id: "pk",
-          name: "Pharmacokinetics",
-          refs: ["MM Ch.7", "MIL Ch.30"],
-          sub: [
-            "Compartments & distribution",
-            "Volume of distribution",
-            "Clearance & elimination",
-            "First-order vs zero-order kinetics",
-            "Half-life, context-sensitive half-time",
-            "Bioavailability & first-pass metabolism",
-            "Protein binding & factors affecting",
-            "Multi-compartment models",
-            "Effect-site concentration (ke0)"
-          ],
-          subLinks: ["","","","","","","","",""],
-        },
-        {
-          id: "pd",
-          name: "Pharmacodynamics",
-          refs: ["MM Ch.7", "MIL Ch.30"],
-          sub: [
-            "Dose-response curves (Emax, EC50, slope)",
-            "Agonists, antagonists, partial agonists",
-            "Receptor types & signal transduction",
-            "Therapeutic index & margin of safety",
-            "Tachyphylaxis & tolerance",
-            "Synergism, additivity, antagonism (isobologram)"
-          ],
-          subLinks: ["","","","","",""],
-        },
-        {
-          id: "uptake-distribution",
-          name: "Uptake & distribution of inhaled agents",
-          refs: ["MM Ch.8", "MIL Ch.31"],
-          sub: [
-            "Solubility (blood/gas partition coefficient)",
-            "Cardiac output effects",
-            "Alveolar-venous partial pressure difference",
-            "Concentration effect & second gas effect",
-            "Overpressurization",
-            "Effect of minute ventilation"
-          ],
-          subLinks: ["","https://litfl.com/","","","",""],
-        },
-        {
-          id: "genetics",
-          name: "Pharmacogenetics & variability",
-          refs: ["MIL Ch.30", "MM Ch.7"],
-          sub: [
-            "Pseudocholinesterase variants",
-            "CYP variants & metabolism",
-            "Malignant hyperthermia susceptibility",
-            "Pain receptor polymorphisms"
-          ],
-          subLinks: ["https://litfl.com/eras/","","https://www.mhaus.org/",""],
-        }
-      ]
-    },
-    {
-      id: "inhalational",
-      name: "Inhalational Anesthetics",
-      topics: [
-        {
-          id: "inh-properties",
-          name: "Properties of inhaled agents",
-          refs: ["MM Ch.8", "MIL Ch.31"],
-          sub: [
-            "MAC concept & factors affecting MAC",
-            "Meyer-Overton hypothesis",
-            "Vapor pressure & boiling points",
-            "Halogenation & stability",
-            "Greenhouse & ozone effects"
-          ],
-          subLinks: ["","","","","https://litfl.com/green-anesthesia/"],
-        },
-        {
-          id: "sevo",
-          name: "Sevoflurane",
-          refs: ["MM Ch.8", "MIL Ch.31"],
-          sub: [
-            "Properties & metabolism (CYP2E1)",
-            "Compound A formation",
-            "Renal effects debate",
-            "Slow washout vs desflurane",
-            "Use in inhalational induction"
-          ],
-          subLinks: ["","","https://derangedphysiology.com/main/required-reading/physiology","","https://www.openanesthesia.org/"],
-        },
-        {
-          id: "iso-des-nt",
-          name: "Isoflurane, Desflurane, Nitrous oxide",
-          refs: ["MM Ch.8", "MIL Ch.31"],
-          sub: [
-            "Isoflurane: vasodilation, pungency",
-            "Desflurane: airway irritation, Tec 6 vaporizer, sympathetic surge",
-            "N2O: diffusion hypoxia, expansion of gas spaces, B12/methionine synthase, PONV, teratogenicity"
-          ],
-          subLinks: ["","","https://litfl.com/"],
-        },
-        {
-          id: "inha-physics",
-          name: "Pharmacology of inhaled agents",
-          refs: ["MM Ch.7", "MIL Ch.27", "OX"],
-          sub: [
-            "Minimum alveolar concentration (MAC) & factors affecting",
-            "Solubility (blood/gas, oil/gas) — onset/offset",
-            "Second gas effect & concentration effect",
-            "Distribution: vessel-rich group vs vessel-poor",
-            "Metabolism & toxicity (halothane hepatitis, compound A)",
-            "Effects on CMR, CBF, ICP, cerebral autoregulation",
-            "Effects on bronchial tone, hypoxic pulmonary vasoconstriction"
-          ],
-          subLinks: ["","","","","","","https://derangedphysiology.com/main/required-reading/physiology"],
-        }
-      ]
-    },
-    {
-      id: "iv-anesthetics",
-      name: "Intravenous Anesthetics",
-      topics: [
-        {
-          id: "propofol",
-          name: "Propofol",
-          refs: ["MM Ch.9", "MIL Ch.30"],
-          sub: [
-            "Pharmacokinetics (high clearance, redistribution)",
-            "Pharmacodynamics (GABA-A)",
-            "Effect on BP, CO, SVR, ventilation",
-            "Pain on injection, lipid formulation",
-            "Propofol infusion syndrome (PRIS)",
-            "Target controlled infusion (TCI) models (Marsh, Schnider, Eleveld)"
-          ],
-          subLinks: ["","","","","https://www.openanesthesia.org/","https://www.openanesthesia.org/"],
-        },
-        {
-          id: "thiopental-etomidate",
-          name: "Thiopental & Etomidate",
-          refs: ["MM Ch.9", "MIL Ch.30"],
-          sub: [
-            "Thiopental: pharmacokinetics, status epilepticus, porphyria contraindication",
-            "Etomidate: adrenal suppression, hemodynamic stability, myoclonus, pain",
-            "Induction doses & contexts"
-          ],
-          subLinks: ["","https://www.openanesthesia.org/","https://www.openanesthesia.org/"],
-        },
-        {
-          id: "ketamine-benzodiazepines",
-          name: "Ketamine & Benzodiazepines",
-          refs: ["MM Ch.9", "MIL Ch.30"],
-          sub: [
-            "Ketamine: NMDA antagonism, dissociative anesthesia, bronchodilation, sympathetic stimulation, emergence phenomena, catecholamine depletion risk",
-            "Midazolam vs diazepam vs lorazepam pharmacokinetics",
-            "Flumazenil reversal & risks"
-          ],
-          subLinks: ["https://www.openanesthesia.org/","","https://www.openanesthesia.org/"],
-        },
-        {
-          id: "dexmedetomidine",
-          name: "Dexmedetomidine & alpha-2 agonists",
-          refs: ["MM Ch.9", "MIL Ch.30"],
-          sub: [
-            "Alpha-2 selectivity",
-            "Cooperative sedation, analgesia, no respiratory depression",
-            "Hemodynamic effects (biphasic BP)",
-            "Uses in extubation, awake intubation, delirium"
-          ],
-          subLinks: ["","","","https://litfl.com/"],
-        },
-        {
-          id: "droperidol-haloperidol",
-          name: "Butyrophenones & adjuncts",
-          refs: ["MM Ch.9"],
-          sub: [
-            "Droperidol: dopamine antagonist, QT prolongation, PONV dosing & black box warning debate",
-            "Haloperidol for delirium"
-          ],
-          subLinks: ["https://litfl.com/","https://litfl.com/"],
-        }
-      ]
-    },
-    {
-      id: "opioids",
-      name: "Opioids & Analgesics",
-      topics: [
-        {
-          id: "opioid-pharm",
-          name: "Opioid pharmacology",
-          refs: ["MM Ch.10", "MIL Ch.31"],
-          sub: [
-            "Receptors (mu, kappa, delta, ORL-1) & signaling",
-            "Equianalgesic dosing & conversion",
-            "Pharmacokinetics of morphine, fentanyl, sufentanil, alfentanil, remifentanil",
-            "Remifentanil: ester hydrolysis, context-insensitive half-time",
-            "Methadone: NMDA action, long half-life",
-            "Tramadol & tapentadol mechanisms"
-          ],
-          subLinks: ["","","","","",""],
-        },
-        {
-          id: "opioid-effects",
-          name: "Opioid effects & toxicity",
-          refs: ["MM Ch.10", "MIL Ch.31"],
-          sub: [
-            "Respiratory depression kinetics",
-            "Tolerance, hyperalgesia, dependence",
-            "Naloxone & naltrexone",
-            "Opioid-induced constipation & mu antagonists (methylnaltrexone)",
-            "Rapid opioid tolerance",
-            "Serotonin syndrome risk (tramadol, meperidine, fentanyl)"
-          ],
-          subLinks: ["","","","https://www.openanesthesia.org/","https://www.openanesthesia.org/",""],
-        },
-        {
-          id: "nonopioid",
-          name: "Non-opioid analgesics",
-          refs: ["MM Ch.10"],
-          sub: [
-            "Acetaminophen mechanism & dosing",
-            "NSAIDs (COX-1/2 selectivity, ketorolac, parecoxib)",
-            "Gabapentinoids (gabapentin, pregabalin)",
-            "Ketamine (low dose), lidocaine infusion, dexmedetomidine",
-            "Magnesium, alpha-2 agonists as adjuncts"
-          ],
-          subLinks: ["","","","https://www.openanesthesia.org/",""],
-        }
-      ]
-    },
-    {
-      id: "nmbs",
-      name: "Neuromuscular Blocking Agents",
-      topics: [
-        {
-          id: "depolarizing",
-          name: "Succinylcholine",
-          refs: ["MM Ch.11", "MIL Ch.32"],
-          sub: [
-            "Mechanism: depolarizing phase I block",
-            "Pharmacokinetics (plasma cholinesterase)",
-            "Hyperkalemia (burns, denervation, immobilization)",
-            "Malignant hyperthermia trigger",
-            "Phase II block",
-            "Pseudocholinesterase deficiency (genetics, dibucaine number)",
-            "Bradycardia, myalgia, increased ICP/IOP/Intragastric pressure"
-          ],
-          subLinks: ["","https://litfl.com/eras/","","https://www.mhaus.org/","","https://litfl.com/eras/","https://litfl.com/"],
-        },
-        {
-          id: "nondep",
-          name: "Nondepolarizing NMBAs",
-          refs: ["MM Ch.11", "MIL Ch.32"],
-          sub: [
-            "Benzylisoquinoliniums (atracurium, cisatracurium, mivacurium, doxacurium)",
-            "Aminosteroids (rocuronium, vecuronium, pancuronium)",
-            "Hofmann elimination & Laudanosine",
-            "Histamine release (atracurium, mivacurium)",
-            "Vagolytic & sympathomimetic (pancuronium)",
-            "Onset/duration comparison & dosing"
-          ],
-          subLinks: ["","","","","",""],
-        },
-        {
-          id: "reversal",
-          name: "Reversal agents",
-          refs: ["MM Ch.11", "MIL Ch.33"],
-          sub: [
-            "Acetylcholinesterase inhibitors (neostigmine, edrophonium)",
-            "Muscarinic co-administration (glycopyrrolate, atropine)",
-            "Sugammadex: encapsulation, dosing, contraindications, allergic reactions",
-            "Comparison of reversal strategies",
-            "Residual blockade detection"
-          ],
-          subLinks: ["https://www.openanesthesia.org/","","https://www.openanesthesia.org/","https://www.openanesthesia.org/",""],
-        }
-      ]
-    },
-    {
-      id: "local-anesthetics",
-      name: "Local Anesthetics",
-      topics: [
-        {
-          id: "la-pharm",
-          name: "LA pharmacology",
-          refs: ["MM Ch.16", "MIL Ch.34"],
-          sub: [
-            "Structure: lipophilic aromatic + intermediate chain + hydrophilic amine",
-            "Amide vs ester metabolism",
-            "pKa, ionization, onset, lipid solubility & potency, protein binding",
-            "Differential block (small fibers first)",
-            "pH and effect of additives",
-            "Pregnancy effects on LA"
-          ],
-          subLinks: ["","","","","",""],
-        },
-        {
-          id: "la-toxicity",
-          name: "Local anesthetic systemic toxicity (LAST)",
-          refs: ["MM Ch.16", "ASRA guidelines", "MIL Ch.34"],
-          sub: [
-            "CNS toxicity: circumoral, tinnitus, seizures",
-            "Cardiac toxicity (more with bupivacaine)",
-            "Bupivacaine cardiotoxicity mechanism",
-            "Lipid emulsion therapy protocol (20%)",
-            "Prevention: test dose, incremental dosing, aspiration",
-            "Treatment algorithm (ASRA)"
-          ],
-          subLinks: ["","https://litfl.com/","https://litfl.com/","","","https://www.asra.com/"],
-        },
-        {
-          id: "la-additives",
-          name: "Additives & formulations",
-          refs: ["MM Ch.16"],
-          sub: [
-            "Epinephrine (vasoconstriction, test dose, duration)",
-            "Bicarbonate (speeds onset)",
-            "Clonidine, dexmedetomidine, opioids",
-            "Dextran for prolonged effect",
-            "EMLA cream"
-          ],
-          subLinks: ["","","https://www.openanesthesia.org/","",""],
-        },
-        {
-          id: "la-agents",
-          name: "Specific agents & max doses",
-          refs: ["MM Ch.16"],
-          sub: [
-            "Lidocaine, mepivacaine, bupivacaine, ropivacaine, levobupivacaine, prilocaine, chloroprocaine",
-            "Maximum doses with/without epinephrine",
-            "Methemoglobinemia (prilocaine, benzocaine)",
-            "Plain vs hyperbaric formulations for spinal"
-          ],
-          subLinks: ["https://www.openanesthesia.org/","","",""],
-        }
-      ]
-    },
-    {
-      id: "cardiac-drugs",
-      name: "Cardiovascular Drugs",
-      topics: [
-        {
-          id: "vasopressors",
-          name: "Vasopressors & inotropes",
-          refs: ["MM Ch.14", "MIL Ch.35"],
-          sub: [
-            "Norepinephrine, epinephrine, phenylephrine, vasopressin",
-            "Dopamine, dobutamine, milrinone",
-            "Receptor profiles & clinical choice",
-            "Dobutamine vs milrinone (PDE inhibitor)",
-            "Vasopressin in vasodilatory shock"
-          ],
-          subLinks: ["","","","","https://litfl.com/"],
-        },
-        {
-          id: "antiarrhythmics",
-          name: "Antiarrhythmics & antihypertensives",
-          refs: ["MM Ch.14", "MM Ch.18"],
-          sub: [
-            "Vaughan-Williams classes",
-            "Amiodarone, lidocaine, adenosine, beta-blockers, calcium channel blockers",
-            "Esmolol, labetalol, metoprolol",
-            "Nitroglycerin, nitroprusside, hydralazine",
-            "ACE-I, ARBs, alpha-blockers"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "anticoag-antiplatelet",
-          name: "Anticoagulants & antiplatelets",
-          refs: ["MM Ch.22"],
-          sub: [
-            "Heparin (UFH, LMWH) & protamine reversal",
-            "Warfarin & vitamin K, FFP/PCC",
-            "DOACs (dabigatran, rivaroxaban, apixaban) & reversal (idarucizumab, andexanet)",
-            "Aspirin, clopidogrel, prasugrel, ticagrelor, GPIIb/IIIa",
-            "Coagulation monitoring (aPTT, anti-Xa, viscoelastic)",
-            "Neuraxial timing guidelines (ASRA)"
-          ],
-          subLinks: ["https://www.openanesthesia.org/","","https://www.openanesthesia.org/","","https://www.openanesthesia.org/","https://www.asra.com/"],
-        }
-      ]
-    }
-  ]
-},
-{
-  id: "physiology",
-  name: "Physiology for Anesthesia",
-  icon: "activity",
-  color: "#10b981",
-  sections: [
-    {
-      id: "ans",
-      name: "Autonomic Nervous System",
-      topics: [
-        {
-          id: "ans-overview",
-          name: "ANS pharmacology & physiology",
-          refs: ["MM Ch.13", "PS"],
-          sub: [
-            "Sympathetic vs parasympathetic anatomy",
-            "Neurotransmitters & receptors",
-            "Adrenergic receptor distribution & effects",
-            "Baroreceptor reflex",
-            "Direct vs reflex effects of drugs"
-          ],
-          subLinks: ["","","","",""],
-        }
-      ]
-    },
-    {
-      id: "cardio",
-      name: "Cardiovascular Physiology",
-      topics: [
-        {
-          id: "hemodynamics",
-          name: "Hemodynamics",
-          refs: ["MM Ch.20", "PS"],
-          sub: [
-            "Cardiac cycle & pressure-volume loops",
-            "Preload, afterload, contractility (Frank-Starling)",
-            "Laplace's law & wall stress",
-            "Determinants of myocardial oxygen supply/demand",
-            "Coronary perfusion & autoregulation",
-            "Compliance & elastance"
-          ],
-          subLinks: ["https://litfl.com/","","","https://litfl.com/","","https://www.openanesthesia.org/"],
-        },
-        {
-          id: "conduction",
-          name: "Electrophysiology & conduction",
-          refs: ["MM Ch.20", "PS"],
-          sub: [
-            "Action potentials (nodal vs ventricular)",
-            "Pacemaker & conduction system",
-            "Refractory periods",
-            "Effect of anesthetics on conduction",
-            "Mechanisms of arrhythmia"
-          ],
-          subLinks: ["","","","","https://litfl.com/"],
-        },
-        {
-          id: "cv-regulation",
-          name: "Regulation of circulation",
-          refs: ["MM Ch.20", "PS"],
-          sub: [
-            "Autonomic control of BP",
-            "Renin-angiotensin-aldosterone",
-            "Vasopressin",
-            "Local metabolic control",
-            "Effects of ventilation & intrathoracic pressure"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "shock-physio",
-          name: "Shock states & oxygen delivery",
-          refs: ["MM Ch.20", "MM Ch.57"],
-          sub: [
-            "DO2 = CO x CaO2; VO2 & extraction",
-            "Hypovolemic, cardiogenic, distributive, obstructive",
-            "Compensated vs decompensated",
-            "Lactate & base excess"
-          ],
-          subLinks: ["","https://litfl.com/","",""],
-        }
-      ]
-    },
-    {
-      id: "resp",
-      name: "Respiratory Physiology",
-      topics: [
-        {
-          id: "mechanics",
-          name: "Lung mechanics & ventilation",
-          refs: ["MM Ch.21", "PS"],
-          sub: [
-            "Compliance & elastance, hysteresis",
-            "Surfactant & Laplace's law",
-            "Airway resistance, laminar vs turbulent",
-            "Work of breathing components",
-            "Lung volumes & capacities (definitions)",
-            "Closing capacity & aging",
-            "Flow-volume loops"
-          ],
-          subLinks: ["https://www.openanesthesia.org/","","","","","",""],
-        },
-        {
-          id: "gas-exchange",
-          name: "Gas exchange & diffusion",
-          refs: ["MM Ch.21", "PS"],
-          sub: [
-            "V/Q relationships & shunt equation",
-            "Oxygen cascade & alveolar gas equation",
-            "PAO2 = FiO2(Patm-PH2O) - PaCO2/R",
-            "Diffusion capacity & Fick law",
-            "A-a gradient causes",
-            "Hypoxic pulmonary vasoconstriction"
-          ],
-          subLinks: ["https://derangedphysiology.com/main/required-reading/physiology","","","","","https://derangedphysiology.com/main/required-reading/physiology"],
-        },
-        {
-          id: "oxygen-co2",
-          name: "Oxygen & CO2 transport",
-          refs: ["MM Ch.21", "PS"],
-          sub: [
-            "Hemoglobin dissociation curve & P50",
-            "Bohr & Haldane effects",
-            "2,3-DPG, pH, temperature shifts",
-            "CO2 transport (bicarbonate, carbamino, dissolved)",
-            "Henderson-Hasselbalch",
-            "CO2 stores & apneic diffusion"
-          ],
-          subLinks: ["","","","","",""],
-        },
-        {
-          id: "control-vent",
-          name: "Control of ventilation",
-          refs: ["MM Ch.21", "PS"],
-          sub: [
-            "Central & peripheral chemoreceptors",
-            "Effect of anesthetics on ventilatory drive",
-            "Hypoxic ventilatory response",
-            "Apneic threshold & CO2 response curve",
-            "Sleep-disordered breathing"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "anesthesia-resp",
-          name: "Effects of anesthesia on respiration",
-          refs: ["MM Ch.21"],
-          sub: [
-            "Reduced FRC, atelectasis, V/Q mismatch",
-            "Reduced hypoxic pulmonary vasoconstriction",
-            "Apnea, altered CO2 response",
-            "Changes in dead space & compliance",
-            "Positioning & cephalad diaphragm shift"
-          ],
-          subLinks: ["https://derangedphysiology.com/main/required-reading/physiology","https://derangedphysiology.com/main/required-reading/physiology","","",""],
-        }
-      ]
-    },
-    {
-      id: "renal",
-      name: "Renal Physiology",
-      topics: [
-        {
-          id: "renal-hemodynamics",
-          name: "Renal hemodynamics & GFR",
-          refs: ["MM Ch.31", "PS"],
-          sub: [
-            "Autoregulation of RBF",
-            "GFR determinants & clearance concepts",
-            "Tubuloglomerular feedback",
-            "Effects of anesthesia on RBF"
-          ],
-          subLinks: ["","","",""],
-        },
-        {
-          id: "tubular",
-          name: "Tubular function & handling",
-          refs: ["MM Ch.31", "PS"],
-          sub: [
-            "Sodium, water, potassium handling",
-            "Loop of Henle & countercurrent multiplier",
-            "ADH/vasopressin & aquaporins",
-            "RAAS & aldosterone",
-            "Acid-base regulation by kidney"
-          ],
-          subLinks: ["","","","","https://derangedphysiology.com/main/required-reading/physiology"],
-        },
-        {
-          id: "renal-evaluation",
-          name: "Perioperative renal evaluation",
-          refs: ["MM Ch.31"],
-          sub: [
-            "BUN/Cr, eGFR, cystatin C",
-            "Fractional excretion of sodium",
-            "AKI biomarkers (NGAL, KIM-1)",
-            "Contrast nephropathy & prevention",
-            "Effects of drugs (NSAIDs, ACE-I)"
-          ],
-          subLinks: ["","","","",""],
-        }
-      ]
-    },
-    {
-      id: "hepatic",
-      name: "Hepatic Physiology",
-      topics: [
-        {
-          id: "liver-function",
-          name: "Liver function & metabolism",
-          refs: ["MM Ch.7", "PS"],
-          sub: [
-            "Hepatic blood flow (dual supply)",
-            "Drug metabolism phases I/II",
-            "Bilirubin metabolism",
-            "Coagulation factor synthesis",
-            "Protein synthesis & drug binding"
-          ],
-          subLinks: ["https://derangedphysiology.com/main/required-reading/physiology","","","https://derangedphysiology.com/main/required-reading/physiology",""],
-        },
-        {
-          id: "anesthesia-liver",
-          name: "Anesthesia & liver disease",
-          refs: ["MM Ch.7", "MM Ch.39"],
-          sub: [
-            "Effects on hepatic blood flow",
-            "Child-Pugh & MELD scoring",
-            "Altered pharmacokinetics in cirrhosis",
-            "Hepatorenal syndrome",
-            "Hepatic encephalopathy"
-          ],
-          subLinks: ["https://derangedphysiology.com/main/required-reading/physiology","","","https://derangedphysiology.com/main/required-reading/physiology","https://derangedphysiology.com/main/required-reading/physiology"],
-        }
-      ]
-    },
-    {
-      id: "endocrine",
-      name: "Endocrine Physiology",
-      topics: [
-        {
-          id: "dm",
-          name: "Diabetes mellitus",
-          refs: ["MM Ch.35"],
-          sub: [
-            "Type 1 vs type 2 pathophysiology",
-            "Insulins (rapid, short, intermediate, long)",
-            "DKA & HHS",
-            "Perioperative insulin management & glucose targets",
-            "Hypoglycemia recognition"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "thyroid",
-          name: "Thyroid & adrenal",
-          refs: ["MM Ch.35"],
-          sub: [
-            "Thyroid storm & myxedema coma",
-            "Hyperthyroid perioperative risks",
-            "Adrenal insufficiency & steroid replacement",
-            "Pheochromocytoma physiology & blockade",
-            "Cushing & Addison"
-          ],
-          subLinks: ["","","https://derangedphysiology.com/main/required-reading/physiology","",""],
-        }
-      ]
-    },
-    {
-      id: "cns",
-      name: "Neurophysiology",
-      topics: [
-        {
-          id: "cbf-icp",
-          name: "Cerebral blood flow & ICP",
-          refs: ["MM Ch.26", "PS"],
-          sub: [
-            "CBF autoregulation (50-150 mmHg)",
-            "PaCO2 & PaO2 effects on CBF",
-            "Intracranial compliance & Monro-Kellie",
-            "Cerebral metabolic rate & anesthetics",
-            "Lund vs CPP-targeted therapy"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "neuro-protection",
-          name: "Neuroprotection & EEG",
-          refs: ["MM Ch.26", "MIL Ch.81"],
-          sub: [
-            "EEG patterns & anesthetic depth",
-            "Burst suppression",
-            "Ischemic preconditioning",
-            "Hypothermia",
-            "Glucose control in neuro injury"
-          ],
-          subLinks: ["","","","https://litfl.com/",""],
-        }
-      ]
-    },
-    {
-      id: "acid-base",
-      name: "Acid-Base & Electrolytes",
-      topics: [
-        {
-          id: "acid-base",
-          name: "Acid-base interpretation",
-          refs: ["MM Ch.51", "MM Ch.52"],
-          sub: [
-            "Henderson-Hasselbalch",
-            "Boston vs Stewart approach",
-            "Anion gap & osmolar gap",
-            "Strong ion difference",
-            "Compensatory mechanisms & expected values",
-            "Common perioperative derangements"
-          ],
-          subLinks: ["","","","","",""],
-        },
-        {
-          id: "electrolytes",
-          name: "Electrolyte disorders",
-          refs: ["MM Ch.52"],
-          sub: [
-            "Sodium: hyponatremia/hypernatremia (DKA, SIADH, diabetes insipidus)",
-            "Potassium: causes & ECG changes",
-            "Calcium: ionized vs total, citrate chelation",
-            "Magnesium: treatment of pre-eclampsia, arrhythmias",
-            "Phosphate"
-          ],
-          subLinks: ["","https://litfl.com/","","https://litfl.com/",""],
-        }
-      ]
-    },
-    {
-      id: "blood-immune",
-      name: "Blood & Immune Physiology",
-      topics: [
-        {
-          id: "coag",
-          name: "Coagulation & fibrinolysis",
-          refs: ["MM Ch.22"],
-          sub: [
-            "Coagulation cascade (intrinsic/extrinsic/common)",
-            "Cell-based model of coagulation",
-            "Platelet function",
-            "Fibrinolysis & D-dimer",
-            "Inherited disorders (vWD, hemophilia A/B)",
-            "Viscoelastic testing interpretation"
-          ],
-          subLinks: ["https://derangedphysiology.com/main/required-reading/physiology","https://derangedphysiology.com/main/required-reading/physiology","","","","https://www.openanesthesia.org/"],
-        },
-        {
-          id: "transfusion-physio",
-          name: "Transfusion physiology",
-          refs: ["MM Ch.51"],
-          sub: [
-            "ABO/Rh & crossmatch",
-            "Component therapy",
-            "Massive transfusion ratios",
-            "TACO vs TRALI",
-            "Transfusion reactions"
-          ],
-          subLinks: ["","","https://litfl.com/","","https://litfl.com/"],
-        }
-      ]
-    }
-  ]
-},
-{
-  id: "management",
-  name: "Anesthetic Management",
-  icon: "clipboard",
-  color: "#f59e0b",
-  sections: [
-    {
-      id: "preop",
-      name: "Preoperative Evaluation",
-      topics: [
-        {
-          id: "assessment",
-          name: "History, exam & risk assessment",
-          refs: ["MM Ch.8", "MIL Ch.38"],
-          sub: [
-            "ASA physical status classification",
-            "Airway assessment (Mallampati, ULBT, TMD, neck mobility)",
-            "Cardiac risk stratification (RCRI/Revised Cardiac Risk Index)",
-            "Functional capacity (METs)",
-            "Preoperative testing indications"
-          ],
-          subLinks: ["","","https://litfl.com/","","https://www.openanesthesia.org/"],
-        },
-        {
-          id: "npo",
-          name: "NPO & aspiration risk",
-          refs: ["MM Ch.8", "ASA fasting guidelines"],
-          sub: [
-            "ASA fasting guidelines (2/4/6/8 h)",
-            "Aspiration risk factors",
-            "Pulmonary aspiration prophylaxis",
-            "Obstetric & bowel obstruction special considerations"
-          ],
-          subLinks: ["","","https://derangedphysiology.com/main/required-reading/physiology",""],
-        },
-        {
-          id: "premed",
-          name: "Premedication",
-          refs: ["MM Ch.8"],
-          sub: [
-            "Anxiolysis (midazolam, dexmedetomidine)",
-            "Antisialogogue (glycopyrrolate)",
-            "PONV prophylaxis",
-            "PPI/H2 blockers",
-            "Beta-blockade (POISE trial)"
-          ],
-          subLinks: ["https://www.openanesthesia.org/","","https://litfl.com/","",""],
-        },
-        {
-          id: "preop-cardiac",
-          name: "Preoperative cardiac optimization",
-          refs: ["MM Ch.8", "ACC/AHA 2014 guidelines"],
-          sub: [
-            "Indications for stress testing",
-            "Stents: DES vs BMS timing",
-            "Beta-blocker & statin continuation",
-            "Heart failure optimization",
-            "Valvular disease assessment"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "preop-pulm",
-          name: "Preoperative pulmonary assessment",
-          refs: ["MM Ch.8"],
-          sub: [
-            "COPD optimization & bronchodilators",
-            "Asthma & peak flow",
-            "Smoking cessation timing",
-            "OSA screening (STOP-BANG)",
-            "Pulmonary hypertension risk"
-          ],
-          subLinks: ["","","","https://www.stopbang.ca/","https://derangedphysiology.com/main/required-reading/physiology"],
-        }
-      ]
-    },
-    {
-      id: "airway",
-      name: "Airway Management",
-      topics: [
-        {
-          id: "airway-anatomy",
-          name: "Airway anatomy & assessment",
-          refs: ["MM Ch.19", "MIL Ch.54"],
-          sub: [
-            "Upper airway innervation",
-            "Larynx anatomy & nerves (SLN, RLN)",
-            "Difficult airway predictors",
-            "LEMON, 3-3-2 rule",
-            "Multivariate predictors (El-Ganzouri)"
-          ],
-          subLinks: ["","","","","https://www.openanesthesia.org/"],
-        },
-        {
-          id: "airway-algo",
-          name: "Difficult airway algorithms",
-          refs: ["ASA Difficult Airway Algorithm", "DAS 2015", "MM Ch.19"],
-          sub: [
-            "ASA difficult airway algorithm",
-            "DAS 2015 guidelines",
-            "Awake vs asleep approach decision",
-            "CICO & eFONA",
-            "Vortex approach",
-            "Difficult airway society extubation guidelines"
-          ],
-          subLinks: ["https://www.das.uk.com/","https://www.das.uk.com/","","https://www.das.uk.com/","",""],
-        },
-        {
-          id: "extubation",
-          name: "Extubation & airway rescue",
-          refs: ["MM Ch.19", "DAS extubation guidelines"],
-          sub: [
-            "Extubation criteria",
-            "Cuff leak test",
-            "Airway exchange catheters",
-            "Deep vs awake extubation",
-            "Staged extubation"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "rapid-sequence",
-          name: "Rapid sequence induction",
-          refs: ["MM Ch.19", "DAS RSI"],
-          sub: [
-            "Indications for RSI",
-            "Modified RSI vs classic",
-            "Cricoid pressure debate (Sellick)",
-            "Preoxygenation & apneic oxygenation (THRIVE)",
-            "Backup airway plans"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "obstructed-airway",
-          name: "Obstructed airway management",
-          refs: ["MM Ch.19", "MIL Ch.54"],
-          sub: [
-            "Stridor: inspiratory vs expiratory vs biphasic",
-            "Epiglottitis, Ludwig angina",
-            "Foreign body airway obstruction",
-            "Airway tumor & stent considerations",
-            "Heliox utility"
-          ],
-          subLinks: ["","","","",""],
-        }
-      ]
-    },
-    {
-      id: "ga",
-      name: "General Anesthesia Technique",
-      topics: [
-        {
-          id: "induction",
-          name: "Induction & intubation",
-          refs: ["MM Ch.18"],
-          sub: [
-            "Induction agent choice",
-            "Loss of consciousness endpoints",
-            "Preoxygenation & denitrogenation",
-            "Apneic oxygenation (THRIVE)",
-            "End-tidal anesthetic targets"
-          ],
-          subLinks: ["https://www.openanesthesia.org/","","","",""],
-        },
-        {
-          id: "maintenance",
-          name: "Maintenance of anesthesia",
-          refs: ["MM Ch.18"],
-          sub: [
-            "Balanced anesthesia concept",
-            "MAC & MAC-BAR",
-            "TIVA vs inhalational",
-            "Adjuvant use (opioid, NMB, lidocaine)",
-            "Awareness prevention & BIS"
-          ],
-          subLinks: ["","","https://www.openanesthesia.org/","https://www.openanesthesia.org/","https://www.openanesthesia.org/"],
-        },
-        {
-          id: "emergence",
-          name: "Emergence & recovery",
-          refs: ["MM Ch.18", "MM Ch.45"],
-          sub: [
-            "Emergence criteria",
-            "Bucking & coughing prevention",
-            "PACU recovery scoring (Aldrete)",
-            "Delayed emergence causes",
-            "Shivering treatment"
-          ],
-          subLinks: ["https://www.openanesthesia.org/","","","https://www.openanesthesia.org/",""],
-        },
-        {
-          id: "tci-tiva",
-          name: "TIVA & target-controlled infusion",
-          refs: ["MM Ch.18", "MIL Ch.30"],
-          sub: [
-            "Pharmacokinetic models (Marsh, Schnider, Eleveld)",
-            "Effect-site targeting",
-            "Context-sensitive half-time concepts",
-            "Closed-loop systems",
-            "Advantages/pitfalls of TIVA"
-          ],
-          subLinks: ["","","","","https://www.openanesthesia.org/"],
-        }
-      ]
-    },
-    {
-      id: "regional",
-      name: "Regional Anesthesia",
-      topics: [
-        {
-          id: "ra-physics",
-          name: "Principles of regional anesthesia",
-          refs: ["MM Ch.16", "NYSORA"],
-          sub: [
-            "Ultrasound physics & needle guidance",
-            "Nerve stimulation principles",
-            "Factors affecting onset, block quality & duration",
-            "Complications (LAST, nerve injury, infection)"
-          ],
-          subLinks: ["","","","https://litfl.com/"],
-        },
-        {
-          id: "neuraxial",
-          name: "Spinal & epidural anesthesia",
-          refs: ["MM Ch.16", "MM Ch.45"],
-          sub: [
-            "Spinal: baricity, hyperbaric bupivacaine, level determinants",
-            "Epidural technique & test dose",
-            "Caudal block",
-            "Combined spinal-epidural",
-            "Hemodynamic & respiratory effects",
-            "Post-dural puncture headache & treatment (EBP)",
-            "Total spinal management",
-            "Anticoagulation & neuraxial timing (ASRA)"
-          ],
-          subLinks: ["https://www.openanesthesia.org/","","","","","","https://www.asra.com/","https://www.asra.com/"],
-        },
-        {
-          id: "upper-limb",
-          name: "Upper limb blocks",
-          refs: ["MM Ch.16", "NYSORA"],
-          sub: [
-            "Interscalene (shoulder)",
-            "Supraclavicular, infraclavicular",
-            "Axillary block",
-            "Phrenic nerve paralysis risk",
-            "Complications (pneumothorax, intrathecal)"
-          ],
-          subLinks: ["https://www.nysora.com/","https://www.nysora.com/","https://www.nysora.com/","",""],
-        },
-        {
-          id: "lower-limb",
-          name: "Lower limb & truncal blocks",
-          refs: ["MM Ch.16", "NYSORA"],
-          sub: [
-            "Femoral, fascia iliaca, saphenous",
-            "Sciatic (anterior/posterior, popliteal)",
-            "TAP block, PECS, erector spinae plane",
-            "Quadratus lumborum block"
-          ],
-          subLinks: ["https://www.nysora.com/","https://www.nysora.com/","https://www.nysora.com/",""],
-        },
-        {
-          id: "ivra-pnb",
-          name: "IV regional & specialized blocks",
-          refs: ["MM Ch.16"],
-          sub: [
-            "Bier block (IVRA) technique & limits",
-            "Ophthalmic blocks (retrobulbar, peribulbar, topical)",
-            "ENT blocks",
-            "Sphenopalatine ganglion block"
-          ],
-          subLinks: ["","","",""],
-        }
-      ]
-    },
-    {
-      id: "mac-sedation",
-      name: "Monitored Anesthesia Care & Sedation",
-      topics: [
-        {
-          id: "mac",
-          name: "MAC & procedural sedation",
-          refs: ["MM Ch.18", "ASA MAC standards"],
-          sub: [
-            "Definition of MAC vs sedation",
-            "ASA continuum of sedation",
-            "Rescue airway responsibility",
-            "Capnography mandatory",
-            "Common drugs (propofol, ketamine, dexmedetomidine, remifentanil)"
-          ],
-          subLinks: ["","","","https://litfl.com/","https://www.openanesthesia.org/"],
-        }
-      ]
-    },
-    {
-      id: "fluids",
-      name: "Fluid & Electrolyte Management",
-      topics: [
-        {
-          id: "fluids",
-          name: "Fluid therapy",
-          refs: ["MM Ch.51"],
-          sub: [
-            "Crystalloids vs colloids",
-            "Balanced vs normal saline (hyperchloremic acidosis)",
-            "4-2-1 rule (maintenance)",
-            "Goal-directed fluid therapy",
-            "Fluid responsiveness indices (SVV, PPV, PLR)",
-            "Starches & albumin evidence (SMART, trial)"
-          ],
-          subLinks: ["","","https://www.openanesthesia.org/","https://litfl.com/","",""],
-        },
-        {
-          id: "transfusion",
-          name: "Transfusion & coagulation management",
-          refs: ["MM Ch.51", "MM Ch.22"],
-          sub: [
-            "Transfusion triggers (Hb 7-8)",
-            "Massive transfusion protocols",
-            "Cell salvage & contraindications",
-            "Factor concentrates (fibrinogen, PCC)",
-            "Tranexamic acid evidence"
-          ],
-          subLinks: ["https://litfl.com/","https://litfl.com/","","",""],
-        }
-      ]
-    },
-    {
-      id: "positioning",
-      name: "Positioning & Safety",
-      topics: [
-        {
-          id: "positioning",
-          name: "Patient positioning",
-          refs: ["MM Ch.18"],
-          sub: [
-            "Pressure points & padding",
-            "Brachial plexus & ulnar nerve",
-            "Lateral, prone, lithotomy, sitting risks",
-            "Venous air embolism in sitting",
-            "Compartment syndrome & rhabdomyolysis",
-            "Eye injury prevention (prone)"
-          ],
-          subLinks: ["","https://www.nysora.com/","","","",""],
-        }
-      ]
-    }
-  ]
-},
-{
-  id: "subspecialty",
-  name: "Subspecialty Anesthesia",
-  icon: "layers",
-  color: "#8b5cf6",
-  sections: [
-    {
-      id: "cardiac-anes",
-      name: "Cardiac Anesthesia",
-      topics: [
-        {
-          id: "cpb",
-          name: "Cardiopulmonary bypass",
-          refs: ["MM Ch.22", "MIL Ch.66"],
-          sub: [
-            "CPB circuit components",
-            "Prime solutions & hemodilution",
-            "Anticoagulation & protamine",
-            "Pulsatile vs non-pulsatile flow",
-            "Inflammatory response to CPB",
-            "Cerebral & organ protection"
-          ],
-          subLinks: ["","","https://derangedphysiology.com/main/required-reading/physiology","","",""],
-        },
-        {
-          id: "cabg-valve",
-          name: "CABG & valve surgery",
-          refs: ["MM Ch.22", "MIL Ch.66"],
-          sub: [
-            "On-pump vs off-pump CABG",
-            "Mitral vs aortic valve surgery",
-            "Monitoring (PA catheter, TEE)",
-            "Weaning from CPB",
-            "Vasoactive support"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "aortic-cardiac",
-          name: "Aortic & special cardiac",
-          refs: ["MM Ch.22", "MIL Ch.67"],
-          sub: [
-            "Aortic aneurysm & dissection",
-            "Deep hypothermic circulatory arrest",
-            "Left heart bypass",
-            "Cardiac tamponade anesthesia",
-            "Transplant (orthotopic, VAD)"
-          ],
-          subLinks: ["","","","https://litfl.com/",""],
-        },
-        {
-          id: "cpb-anesthesia",
-          name: "Anesthesia for cardiac surgery",
-          refs: ["MM Ch.22"],
-          sub: [
-            "Premedication & induction",
-            "Fast-track cardiac anesthesia",
-            "TEE basic views",
-            "Extubation timing",
-            "Postoperative bleeding management"
-          ],
-          subLinks: ["https://www.openanesthesia.org/","https://litfl.com/","","",""],
-        }
-      ]
-    },
-    {
-      id: "thoracic",
-      name: "Thoracic Anesthesia",
-      topics: [
-        {
-          id: "olvs",
-          name: "One-lung ventilation",
-          refs: ["MM Ch.23", "MIL Ch.70"],
-          sub: [
-            "DLT vs bronchial blocker indications",
-            "DLT sizing & placement (fiberoptic confirm)",
-            "Hypoxemia during OLV management",
-            "CPAP to non-dependent lung, PEEP dependent",
-            "V/Q & hypoxic pulmonary vasoconstriction"
-          ],
-          subLinks: ["","https://www.openanesthesia.org/","","","https://derangedphysiology.com/main/required-reading/physiology"],
-        },
-        {
-          id: "thoracic-procedures",
-          name: "Thoracic procedures",
-          refs: ["MM Ch.23"],
-          sub: [
-            "Lung resection, lobectomy, pneumonectomy",
-            "Bronchoscopy, mediastinoscopy",
-            "Esophageal surgery",
-            "Post-lung resection pulmonary edema",
-            "Lung transplant",
-            "Anesthesia for empyema, decortication"
-          ],
-          subLinks: ["","","","https://derangedphysiology.com/main/required-reading/physiology","",""],
-        },
-        {
-          id: "jet-vent",
-          name: "Jet ventilation & airway surgery",
-          refs: ["MM Ch.23"],
-          sub: [
-            "High frequency jet ventilation",
-            "Bronchial blocker for airway surgery",
-            "Laser airway surgery: fire triangle, tube selection",
-            "Rigid bronchoscopy ventilation"
-          ],
-          subLinks: ["","","",""],
-        }
-      ]
-    },
-    {
-      id: "vascular",
-      name: "Vascular Anesthesia",
-      topics: [
-        {
-          id: "carotid",
-          name: "Carotid & cerebrovascular",
-          refs: ["MM Ch.24"],
-          sub: [
-            "Carotid endarterectomy: GA vs regional vs awake",
-            "Cerebral monitoring (EEG, stump pressure, TCD)",
-            "Shunt indications",
-            "Postoperative hyperperfusion syndrome"
-          ],
-          subLinks: ["","","",""],
-        },
-        {
-          id: "aortic-vascular",
-          name: "Aortic & peripheral vascular",
-          refs: ["MM Ch.24"],
-          sub: [
-            "Open vs endovascular aortic repair (EVAR)",
-            "Clamping hemodynamics",
-            "Spinal cord ischemia risk",
-            "Peripheral revascularization",
-            "Thrombolysis & anticoagulation considerations"
-          ],
-          subLinks: ["","","","","https://derangedphysiology.com/main/required-reading/physiology"],
-        }
-      ]
-    },
-    {
-      id: "neuro",
-      name: "Neuroanesthesia",
-      topics: [
-        {
-          id: "neuro-tumor",
-          name: "Intracranial & tumor surgery",
-          refs: ["MM Ch.26", "MIL Ch.81"],
-          sub: [
-            "ICP & CPP management",
-            "Drugs: propofol, thiopental, opioids, ketamine debate",
-            "Brain relaxation & mannitol/hypertonic saline",
-            "Positioning & venous air embolism"
-          ],
-          subLinks: ["","https://www.openanesthesia.org/","",""],
-        },
-        {
-          id: "neuro-spine",
-          name: "Spine & spinal cord",
-          refs: ["MM Ch.26"],
-          sub: [
-            "Anterior vs posterior cervical approaches",
-            "Spinal cord monitoring (SSEP, MEP)",
-            "Venous air embolism in prone/sitting",
-            "Spinal cord perfusion pressure",
-            "Major blood loss & cell salvage"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "neuro-special",
-          name: "Special neuro procedures",
-          refs: ["MM Ch.26"],
-          sub: [
-            "Awake craniotomy & mapping",
-            "Epilepsy surgery & Wada test",
-            "Interventional neuroradiology (coiling, stenting)",
-            "Pituitary surgery (transsphenoidal)",
-            "Sitting position & VAE management",
-            "Carotid & intracranial vascular surgery"
-          ],
-          subLinks: ["","","","","",""],
-        }
-      ]
-    },
-    {
-      id: "obstetric",
-      name: "Obstetric Anesthesia",
-      topics: [
-        {
-          id: "ob-physio",
-          name: "Maternal physiology changes",
-          refs: ["MM Ch.40", "MM Ch.41"],
-          sub: [
-            "Cardiovascular, respiratory, GI changes",
-            "Aortocaval compression & left uterine displacement",
-            "Decreased MAC, increased block height",
-            "Placental transfer & drug effects on fetus"
-          ],
-          subLinks: ["https://litfl.com/","","",""],
-        },
-        {
-          id: "cs",
-          name: "Cesarean section anesthesia",
-          refs: ["MM Ch.41", "MIL Ch.77"],
-          sub: [
-            "Spinal: hyperbaric bupivacaine + opioid",
-            "Epidural top-up for cesarean",
-            "CSE technique",
-            "Hypotension management (phenylephrine vs ephedrine)",
-            "Failed conversion to GA & general technique"
-          ],
-          subLinks: ["https://www.openanesthesia.org/","","","https://litfl.com/",""],
-        },
-        {
-          id: "labor",
-          name: "Labor analgesia",
-          refs: ["MM Ch.41", "MM Ch.40"],
-          sub: [
-            "Epidural analgesia regimen",
-            "Combined spinal-epidural for labor",
-            "Dural puncture & PDPH",
-            "Complications: high block, LAST",
-            "Inadequate block troubleshooting"
-          ],
-          subLinks: ["","","","https://www.openanesthesia.org/",""],
-        },
-        {
-          id: "ob-emergencies",
-          name: "Obstetric emergencies",
-          refs: ["MM Ch.41", "MIL Ch.77"],
-          sub: [
-            "Massive obstetric hemorrhage & DIC",
-            "Amniotic fluid embolism",
-            "Placenta accreta spectrum",
-            "Pre-eclampsia/eclampsia & HELLP",
-            "Shoulder dystocia & uterine inversion",
-            "Maternal cardiac arrest (MCFPR)"
-          ],
-          subLinks: ["","","","","","https://www.resus.org.uk/"],
-        },
-        {
-          id: "ob-fetus",
-          name: "Fetal assessment & neonatal",
-          refs: ["MM Ch.41"],
-          sub: [
-            "APGAR score",
-            "Neonatal resuscitation (NRP)",
-            "Umbilical cord blood gases",
-            "Meconium aspiration"
-          ],
-          subLinks: ["","","",""],
-        }
-      ]
-    },
-    {
-      id: "pediatric",
-      name: "Pediatric Anesthesia",
-      topics: [
-        {
-          id: "ped-physio",
-          name: "Pediatric physiology & airway",
-          refs: ["MM Ch.42", "MIL Ch.78"],
-          sub: [
-            "Neonatal cardiovascular & respiratory physiology",
-            "Pediatric airway differences (large tongue, occiput, narrow cricoid)",
-            "Pulmonary vascular transition & PPHN",
-            "Thermoregulation & insensible losses",
-            "Pediatric dosing & MAC changes"
-          ],
-          subLinks: ["https://litfl.com/","","https://derangedphysiology.com/main/required-reading/physiology","",""],
-        },
-        {
-          id: "ped-induction",
-          name: "Pediatric induction & airway",
-          refs: ["MM Ch.42"],
-          sub: [
-            "Inhalational vs IV induction",
-            "Parental presence & premedication",
-            "Pediatric ETT sizing (uncuffed vs cuffed)",
-            "LMA in pediatrics",
-            "Difficult pediatric airway algorithm"
-          ],
-          subLinks: ["https://www.openanesthesia.org/","https://www.openanesthesia.org/","","",""],
-        },
-        {
-          id: "ped-surgery",
-          name: "Common pediatric procedures",
-          refs: ["MM Ch.42", "MIL Ch.78"],
-          sub: [
-            "Tonsillectomy & adenoidectomy",
-            "Strabismus surgery",
-            "Cleft lip/palate",
-            "Tympanostomy",
-            "Hernia & orchiopexy",
-            "Inguinal blocks (caudal, ilioinguinal)"
-          ],
-          subLinks: ["","","","","",""],
-        },
-        {
-          id: "ped-neonatal",
-          name: "Neonatal emergencies",
-          refs: ["MM Ch.42"],
-          sub: [
-            "Congenital diaphragmatic hernia",
-            "Tracheoesophageal fistula",
-            "Omphalocele & gastroschisis",
-            "Pyloric stenosis (metabolic alkalosis)",
-            "Necrotizing enterocolitis",
-            "Congenital heart disease considerations"
-          ],
-          subLinks: ["","","","","",""],
-        }
-      ]
-    },
-    {
-      id: "geriatric",
-      name: "Geriatric Anesthesia",
-      topics: [
-        {
-          id: "geri-physio",
-          name: "Aging & anesthetic implications",
-          refs: ["MM Ch.43"],
-          sub: [
-            "Organ system changes & MAC reduction",
-            "Pharmacokinetic changes (decreased clearance)",
-            "Frailty & delirium risk",
-            "Postoperative cognitive dysfunction vs delirium",
-            "Polypharmacy & drug interactions"
-          ],
-          subLinks: ["","","https://litfl.com/","https://litfl.com/",""],
-        }
-      ]
-    },
-    {
-      id: "ambulatory",
-      name: "Ambulatory & Day-case",
-      topics: [
-        {
-          id: "ambulatory",
-          name: "Outpatient anesthesia",
-          refs: ["MM Ch.44"],
-          sub: [
-            "Patient selection criteria",
-            "Fast-tracking & PACU bypass",
-            "PONV prophylaxis multimodal",
-            "Post-discharge nausea & vomiting",
-            "Discharge criteria"
-          ],
-          subLinks: ["","","https://litfl.com/","",""],
-        }
-      ]
-    },
-    {
-      id: "trauma",
-      name: "Trauma Anesthesia",
-      topics: [
-        {
-          id: "trauma",
-          name: "Trauma resuscitation",
-          refs: ["MM Ch.39", "ATLS"],
-          sub: [
-            "Primary survey (ABCDE)",
-            "Hypotensive resuscitation debate",
-            "Damage control resuscitation",
-            "Massive transfusion ratios",
-            "Traumatic brain injury (CPP target)",
-            "Burns: Parkland formula, escharotomy"
-          ],
-          subLinks: ["","","","https://litfl.com/","https://litfl.com/",""],
-        }
-      ]
-    },
-    {
-      id: "bariatric",
-      name: "Bariatric Anesthesia",
-      topics: [
-        {
-          id: "obesity",
-          name: "Obesity & bariatric surgery",
-          refs: ["MM Ch.29"],
-          sub: [
-            "Obesity-related physiology (FRC, OSA, OHS)",
-            "Difficult airway prediction & positioning",
-            "Drug dosing (LBW vs TBW)",
-            "CPAP/BiPAP perioperative",
-            "Bariatric procedures (sleeve, bypass) complications"
-          ],
-          subLinks: ["https://www.stopbang.ca/","","","",""],
-        }
-      ]
-    },
-    {
-      id: "transplant",
-      name: "Transplant Anesthesia",
-      topics: [
-        {
-          id: "transplant",
-          name: "Organ transplant",
-          refs: ["MM Ch.39"],
-          sub: [
-            "Liver transplant: anhepatic & reperfusion phases",
-            "Kidney transplant anesthesia",
-            "Pancreas & islet transplant",
-            "Heart & lung transplant"
-          ],
-          subLinks: ["https://derangedphysiology.com/main/required-reading/physiology","","",""],
-        }
-      ]
-    },
-    {
-      id: "ophthalmic",
-      name: "Ophthalmic & ENT",
-      topics: [
-        {
-          id: "eye",
-          name: "Ophthalmic anesthesia",
-          refs: ["MM Ch.38"],
-          sub: [
-            "Oculocardiac reflex",
-            "Retrobulbar & peribulbar block",
-            "Intraocular pressure & drugs",
-            "Open eye + full stomach dilemma",
-            "Pediatric strabismus & malignant hyperthermia"
-          ],
-          subLinks: ["https://litfl.com/","","","","https://www.mhaus.org/"],
-        },
-        {
-          id: "ent",
-          name: "ENT & maxillofacial",
-          refs: ["MM Ch.38"],
-          sub: [
-            "Tonsillectomy: bleeding, suxamethonium debate",
-            "Laser airway surgery fire prevention",
-            "TMJ & facial trauma",
-            "Shared airway cases"
-          ],
-          subLinks: ["","","https://litfl.com/",""],
-        }
-      ]
-    },
-    {
-      id: "ortho",
-      name: "Orthopedic Anesthesia",
-      topics: [
-        {
-          id: "ortho",
-          name: "Orthopedic procedures",
-          refs: ["MM Ch.37"],
-          sub: [
-            "Tourniquet physiology & tolerance",
-            "Bone cement implantation syndrome",
-            "Fat embolism syndrome",
-            "Major joint replacement & ERAS",
-            "Scoliosis surgery (SSEP, cell salvage)"
-          ],
-          subLinks: ["","","","https://litfl.com/eras/",""],
-        }
-      ]
-    },
-    {
-      id: "endo-surgery",
-      name: "Endocrine & Abdominal Surgery",
-      topics: [
-        {
-          id: "pheo",
-          name: "Pheochromocytoma",
-          refs: ["MM Ch.35"],
-          sub: [
-            "Preoperative alpha then beta blockade",
-            "Intraoperative hemodynamic swings",
-            "Hypoglycemia after resection",
-            "Adrenal crisis risk"
-          ],
-          subLinks: ["https://www.openanesthesia.org/","","","https://derangedphysiology.com/main/required-reading/physiology"],
-        },
-        {
-          id: "abdominal",
-          name: "Abdominal & laparoscopic surgery",
-          refs: ["MM Ch.18"],
-          sub: [
-            "Laparoscopy: CO2 absorption, IAP effects, gas embolism",
-            "Bowel surgery & fluid shifts",
-            "ERAS pathways",
-            "Hepatic resection anesthesia"
-          ],
-          subLinks: ["","","https://litfl.com/eras/","https://derangedphysiology.com/main/required-reading/physiology"],
-        }
-      ]
-    },
-    {
-      id: "genitourinary",
-      name: "Genitourinary & Robotic",
-      topics: [
-        {
-          id: "turgi",
-          name: "TURP, urology & robotic",
-          refs: ["MM Ch.37"],
-          sub: [
-            "TURP syndrome (glycine absorption)",
-            "Robotic surgery: steep Trendelenburg, pneumoperitoneum",
-            "Cystectomy, nephrectomy",
-            "Radical prostatectomy anesthesia"
-          ],
-          subLinks: ["","","",""],
-        }
-      ]
-    }
-  ]
-},
-{
-  id: "pain",
-  name: "Pain Medicine",
-  icon: "heart-pulse",
-  color: "#ef4444",
-  sections: [
-    {
-      id: "pain-physiology",
-      name: "Pain Physiology",
-      topics: [
-        {
-          id: "pain-pathway",
-          name: "Pain pathways & modulation",
-          refs: ["MM Ch.47", "MIL Ch.87"],
-          sub: [
-            "Nociceptors & transduction",
-            "A-delta vs C fibers",
-            "Spinal cord processing & gate control",
-            "Descending inhibition",
-            "Central & peripheral sensitization",
-            "Wind-up & NMDA",
-            "Chronic pain mechanisms"
-          ],
-          subLinks: ["","","","","","",""],
-        }
-      ]
-    },
-    {
-      id: "acute-pain",
-      name: "Acute Pain Management",
-      topics: [
-        {
-          id: "acute-pain",
-          name: "Postoperative pain",
-          refs: ["MM Ch.47"],
-          sub: [
-            "Multimodal analgesia concept",
-            "PCA: dosing, lockout, background infusion",
-            "Epidural analgesia (types, agents, monitoring)",
-            "Regional analgesia continuous catheters",
-            "ERAS pain protocols",
-            "Opioid-tolerant patient management",
-            "Acute pain service & monitoring"
-          ],
-          subLinks: ["","","","","https://litfl.com/eras/","https://www.openanesthesia.org/",""],
-        }
-      ]
-    },
-    {
-      id: "chronic-pain",
-      name: "Chronic & Cancer Pain",
-      topics: [
-        {
-          id: "chronic",
-          name: "Chronic pain conditions",
-          refs: ["MM Ch.47"],
-          sub: [
-            "Neuropathic pain: postherpetic neuralgia, diabetic neuropathy",
-            "Complex regional pain syndrome (CRPS I/II)",
-            "Trigeminal neuralgia & facial pain",
-            "Fibromyalgia & central sensitization",
-            "Pharmacotherapy (gabapentinoids, antidepressants, opioids)"
-          ],
-          subLinks: ["","","","","https://www.openanesthesia.org/"],
-        },
-        {
-          id: "cancer-pain",
-          name: "Cancer pain & interventions",
-          refs: ["MM Ch.47"],
-          sub: [
-            "WHO analgesic ladder",
-            "Opioid rotation & equianalgesia",
-            "Intrathecal drug delivery systems",
-            "Neurolytic blocks (celiac plexus)",
-            "Palliative sedation"
-          ],
-          subLinks: ["","https://www.openanesthesia.org/","","",""],
-        },
-        {
-          id: "pain-interventions",
-          name: "Interventional pain procedures",
-          refs: ["MM Ch.47"],
-          sub: [
-            "Epidural steroid injections",
-            "Facet joint & medial branch blocks",
-            "Radiofrequency ablation",
-            "Sympathetic blocks (splanchnic, stellate, lumbar)",
-            "Spinal cord stimulation",
-            "Dorsal root ganglion stimulation"
-          ],
-          subLinks: ["","","","","",""],
-        }
-      ]
-    }
-  ]
-},
-{
-  id: "critical-care",
-  name: "Critical Care Medicine",
-  icon: "activity",
-  color: "#06b6d4",
-  sections: [
-    {
-      id: "resus",
-      name: "Resuscitation",
-      topics: [
-        {
-          id: "cpr",
-          name: "Cardiac arrest & CPR",
-          refs: ["MM Ch.48", "AHA ACLS"],
-          sub: [
-            "BLS & high-quality CPR metrics",
-            "ACLS algorithms (VF/VT, PEA, asystole)",
-            "Reversible causes (Hs & Ts)",
-            "Post-cardiac arrest care & targeted temperature",
-            "ECMO & eCPR",
-            "Ethics: DNAR in OR"
-          ],
-          subLinks: ["https://www.resus.org.uk/","https://www.resus.org.uk/","https://www.resus.org.uk/","https://www.resus.org.uk/","https://www.resus.org.uk/","https://www.resus.org.uk/"],
-        },
-        {
-          id: "shock",
-          name: "Shock states",
-          refs: ["MM Ch.57"],
-          sub: [
-            "Classification & recognition",
-            "Septic shock: Surviving Sepsis bundles",
-            "Cardiogenic shock & mechanical support",
-            "Anaphylactic shock",
-            "Hemodynamic monitoring in shock"
-          ],
-          subLinks: ["","https://litfl.com/","https://litfl.com/","https://litfl.com/","https://litfl.com/"],
-        }
-      ]
-    },
-    {
-      id: "icu-vent",
-      name: "Mechanical Ventilation in ICU",
-      topics: [
-        {
-          id: "vent-modes",
-          name: "Ventilator modes & settings",
-          refs: ["MIL Ch.103"],
-          sub: [
-            "Volume vs pressure control",
-            "SIMV, PSV, APRV",
-            "Lung-protective ventilation (ARDSnet)",
-            "PEEP titration",
-            "Weaning & SBT",
-            "Airway pressure release ventilation"
-          ],
-          subLinks: ["","","https://litfl.com/","","",""],
-        },
-        {
-          id: "ards",
-          name: "ARDS & hypoxemia",
-          refs: ["MIL Ch.103", "ARDSnet"],
-          sub: [
-            "Berlin definition & severity",
-            "PEEP/FiO2 tables",
-            "Prone positioning",
-            "Neuromuscular blockade in ARDS",
-            "ECMO indications (V-V vs V-A)",
-            "Driving pressure & transpulmonary pressure"
-          ],
-          subLinks: ["","","","https://litfl.com/","https://www.elso.org/","https://derangedphysiology.com/main/required-reading/physiology"],
-        }
-      ]
-    },
-    {
-      id: "icu-hemodynamic",
-      name: "Hemodynamic Support & Sepsis",
-      topics: [
-        {
-          id: "sepsis",
-          name: "Sepsis & septic shock",
-          refs: ["Surviving Sepsis Campaign 2021"],
-          sub: [
-            "Sepsis-3 definitions",
-            "Hour-1 bundle",
-            "Fluid resuscitation & dynamic indices",
-            "Vasopressor choice & targets",
-            "Lactate clearance",
-            "Source control"
-          ],
-          subLinks: ["https://litfl.com/","","","","",""],
-        }
-      ]
-    },
-    {
-      id: "icu-organ",
-      name: "Organ Support",
-      topics: [
-        {
-          id: "aki",
-          name: "Acute kidney injury & RRT",
-          refs: ["MM Ch.57"],
-          sub: [
-            "KDIGO staging",
-            "Indications for dialysis (AEIOU)",
-            "CRRT vs intermittent HD",
-            "Dosing of CRRT",
-            "Drug dosing adjustments"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "nutrition",
-          name: "Nutrition & metabolic",
-          refs: ["MM Ch.57"],
-          sub: [
-            "Energy & protein targets",
-            "Early enteral nutrition",
-            "Refeeding syndrome",
-            "TPN indications & complications"
-          ],
-          subLinks: ["","","",""],
-        }
-      ]
-    },
-    {
-      id: "icu-neuro",
-      name: "Neurocritical Care",
-      topics: [
-        {
-          id: "tbi-icu",
-          name: "TBI & raised ICP",
-          refs: ["MM Ch.39", "Brain Trauma Foundation"],
-          sub: [
-            "Brain Trauma Foundation guidelines",
-            "ICP monitoring & thresholds",
-            "CPP target (60-70)",
-            "Osmotherapy (mannitol vs hypertonic saline)",
-            "Decompressive craniectomy",
-            "Multimodality monitoring (PbtO2, microdialysis)"
-          ],
-          subLinks: ["https://litfl.com/","","","","",""],
-        },
-        {
-          id: "stroke-status",
-          name: "Stroke & status epilepticus",
-          refs: ["MM Ch.57"],
-          sub: [
-            "Ischemic stroke: thrombolysis, thrombectomy",
-            "Hemorrhagic stroke & BP control",
-            "Status epilepticus algorithm",
-            "Continuous EEG monitoring"
-          ],
-          subLinks: ["https://litfl.com/","https://litfl.com/","",""],
-        }
-      ]
-    }
-  ]
-},
-{
-  id: "complications",
-  name: "Perioperative Complications & Emergencies",
-  icon: "alert-triangle",
-  color: "#f97316",
-  sections: [
-    {
-      id: "airway-emergencies",
-      name: "Airway & Respiratory Emergencies",
-      topics: [
-        {
-          id: "cico",
-          name: "Cannot intubate cannot oxygenate",
-          refs: ["DAS 2015", "MM Ch.19"],
-          sub: [
-            "CICO definition & timeline",
-            "Scalpel-bougie-tube technique",
-            "Cricothyroidotomy: Melker vs surgical",
-            "Team factors & human factors"
-          ],
-          subLinks: ["https://www.das.uk.com/","https://www.das.uk.com/","https://www.das.uk.com/",""],
-        },
-        {
-          id: "bronchospasm",
-          name: "Intraoperative bronchospasm",
-          refs: ["MM Ch.18"],
-          sub: [
-            "Differential diagnosis",
-            "Treatment: deepening, bronchodilators, ketamine",
-            "Anaphylaxis distinction",
-            "Ventilator strategy"
-          ],
-          subLinks: ["","https://www.openanesthesia.org/","https://litfl.com/",""],
-        },
-        {
-          id: "aspiration",
-          name: "Pulmonary aspiration",
-          refs: ["MM Ch.18"],
-          sub: [
-            "Risk factors & prevention",
-            "Management: head down, suction, PEEP",
-            "Steroid & antibiotic debate",
-            "Bronchoscopy & lavage"
-          ],
-          subLinks: ["","","",""],
-        }
-      ]
-    },
-    {
-      id: "cardio-emergencies",
-      name: "Cardiovascular Emergencies",
-      topics: [
-        {
-          id: "hypotension",
-          name: "Intraoperative hypotension & arrhythmia",
-          refs: ["MM Ch.18"],
-          sub: [
-            "Differential: preload/afterload/contractility",
-            "Common arrhythmias management",
-            "Tachyarrhythmia vs bradyarrhythmia",
-            "Pulseless arrest algorithm"
-          ],
-          subLinks: ["","https://litfl.com/","https://litfl.com/",""],
-        },
-        {
-          id: "hypertensive",
-          name: "Hypertensive crisis",
-          refs: ["MM Ch.14"],
-          sub: [
-            "Definition & targets",
-            "Drug choice (labetalol, nicardipine, nitroprusside)",
-            "Aortic dissection management",
-            "Pheochromocytoma crisis"
-          ],
-          subLinks: ["","https://litfl.com/","",""],
-        },
-        {
-          id: "vae",
-          name: "Venous air embolism",
-          refs: ["MM Ch.26"],
-          sub: [
-            "Risk & mechanism",
-            "Diagnosis (EtCO2, precordial Doppler, TEE)",
-            "Management: stop source, Durant position, aspirate CVP"
-          ],
-          subLinks: ["","",""],
-        }
-      ]
-    },
-    {
-      id: "neuro-emergencies",
-      name: "Neurologic Complications",
-      topics: [
-        {
-          id: "awareness",
-          name: "Awareness under anesthesia",
-          refs: ["MM Ch.18", "MIL Ch.53"],
-          sub: [
-            "Risk factors (TIVA, NMB, trauma)",
-            "BIS & monitoring utility",
-            "Prevention strategies",
-            "Postoperative management & PTSD"
-          ],
-          subLinks: ["https://litfl.com/","","",""],
-        },
-        {
-          id: "delirium",
-          name: "Postoperative delirium & cognitive dysfunction",
-          refs: ["MM Ch.43"],
-          sub: [
-            "Risk factors & screening (CAM-ICU)",
-            "Prevention: multimodal",
-            "Pharmacologic vs non-pharmacologic",
-            "POCD vs delirium distinction"
-          ],
-          subLinks: ["","","","https://litfl.com/"],
-        },
-        {
-          id: "stroke",
-          name: "Perioperative stroke",
-          refs: ["MM Ch.39"],
-          sub: [
-            "Risk factors",
-            "Atrial fibrillation & surgery",
-            "Timing after prior stroke",
-            "Management algorithm"
-          ],
-          subLinks: ["","","https://litfl.com/",""],
-        }
-      ]
-    },
-    {
-      id: "mh-anaphylaxis",
-      name: "Malignant Hyperthermia & Anaphylaxis",
-      topics: [
-        {
-          id: "mh",
-          name: "Malignant hyperthermia",
-          refs: ["MM Ch.12", "MHAUS"],
-          sub: [
-            "Pathophysiology (RYR1, CACNA1S)",
-            "Trigger & non-trigger agents",
-            "Clinical presentation & lab changes",
-            "Treatment: dantrolene protocol, cooling, treat hyperkalemia",
-            "MHAUS hotline & post-crisis",
-            "Testing & family screening"
-          ],
-          subLinks: ["","","","https://www.mhaus.org/","https://www.mhaus.org/",""],
-        },
-        {
-          id: "anaphylaxis",
-          name: "Anaphylaxis",
-          refs: ["MM Ch.18", "MM Ch.12"],
-          sub: [
-            "Common triggers (NMBAs, antibiotics, latex, chlorhexidine)",
-            "Mechanism (IgE vs non-IgE)",
-            "Diagnosis & tryptase timing",
-            "Treatment: epinephrine, fluids, positioning",
-            "Post-event investigation"
-          ],
-          subLinks: ["","","","",""],
-        }
-      ]
-    },
-    {
-      id: "other-complications",
-      name: "Other Complications",
-      topics: [
-        {
-          id: "ponv",
-          name: "Postoperative nausea & vomiting",
-          refs: ["MM Ch.45", "Apfel score"],
-          sub: [
-            "Risk factors (Apfel)",
-            "Receptor targets & drugs",
-            "Multimodal PONV prophylaxis",
-            "Rescue therapy",
-            "PDNV"
-          ],
-          subLinks: ["","","https://litfl.com/","",""],
-        },
-        {
-          id: "hypothermia",
-          name: "Hypothermia & shivering",
-          refs: ["MM Ch.18"],
-          sub: [
-            "Phases of heat loss",
-            "Consequences (coagulopathy, infection, prolonged recovery)",
-            "Warming devices",
-            "Shivering treatment (meperidine, clonidine, dexmedetomidine)"
-          ],
-          subLinks: ["","","","https://www.openanesthesia.org/"],
-        },
-        {
-          id: "eye-injury",
-          name: "Peripheral nerve & eye injury",
-          refs: ["MM Ch.18", "ASA Closed Claims"],
-          sub: [
-            "Ulnar nerve injury common causes",
-            "Brachial plexus & positioning",
-            "Corneal abrasion prevention",
-            "Ischemic optic neuropathy (prone, spine)",
-            "ASA practice advisory on positioning"
-          ],
-          subLinks: ["https://litfl.com/","https://www.nysora.com/","","",""],
-        },
-        {
-          id: "cholinesterase",
-          name: "Pseudocholinesterase deficiency",
-          refs: ["MM Ch.11"],
-          sub: [
-            "Genetic variants & dibucaine number",
-            "Acquired causes",
-            "Management of prolonged blockade",
-            "Genetic counseling"
-          ],
-          subLinks: ["","","",""],
-        },
-        {
-          id: "latex",
-          name: "Latex allergy",
-          refs: ["MM Ch.12"],
-          sub: [
-            "Risk groups (spina bifida, healthcare workers)",
-            "Clinical presentation",
-            "Latex-free environment",
-            "Cross-reactivity (fruits)"
-          ],
-          subLinks: ["","","",""],
-        }
-      ]
-    }
-  ]
-},
-{
-  id: "basic-science",
-  name: "Basic Sciences & Statistics",
-  icon: "calculator",
-  color: "#14b8a6",
-  sections: [
-    {
-      id: "physics",
-      name: "Anesthesia Physics",
-      topics: [
-        {
-          id: "gas-laws",
-          name: "Gas laws & physics",
-          refs: ["MM Ch.4", "DD"],
-          sub: [
-            "Boyle, Charles, Gay-Lussac, ideal gas",
-            "Avogadro's hypothesis & Dalton's law",
-            "Fick's law of diffusion",
-            "Graham's law (effusion)",
-            "Henry's law",
-            "Critical temperature & pressure",
-            "Adiabatic compression/explosion",
-            "Latent heat of vaporization",
-            "Viscosity, density, Reynolds number"
-          ],
-          subLinks: ["","","","","","","","",""],
-        },
-        {
-          id: "pressure-flow",
-          name: "Pressure, flow & measurement",
-          refs: ["DD"],
-          sub: [
-            "Bourdon gauge, manometers",
-            "Bernoulli & Venturi principles",
-            "Laminar vs turbulent (Hagen-Poiseuille)",
-            "Pneumatic vs electronic measurement",
-            "Oscillometric BP"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "electric-laser",
-          name: "Electricity & lasers",
-          refs: ["DD Ch.19"],
-          sub: [
-            "Ohm's law & power",
-            "Macroshock vs microshock",
-            "Diathermy & grounding pad",
-            "Laser types & physics (CO2, Nd:YAG, KTP)",
-            "Surgical fire triangle"
-          ],
-          subLinks: ["","https://litfl.com/","","",""],
-        }
-      ]
-    },
-    {
-      id: "stats",
-      name: "Statistics & Research",
-      topics: [
-        {
-          id: "stats-basics",
-          name: "Statistical concepts",
-          refs: ["MM Ch.6"],
-          sub: [
-            "Descriptive statistics",
-            "Normal & non-normal distributions",
-            "Confidence intervals",
-            "Hypothesis testing & p-value",
-            "Type I & II errors, power",
-            "Parametric vs non-parametric tests",
-            "Multiple comparisons"
-          ],
-          subLinks: ["https://litfl.com/","","","","","",""],
-        },
-        {
-          id: "study-design",
-          name: "Study design & evidence",
-          refs: ["MM Ch.6"],
-          sub: [
-            "RCT, cohort, case-control, cross-sectional",
-            "Bias & confounding",
-            "Levels of evidence",
-            "Forest plots & meta-analysis",
-            "Number needed to treat/harm",
-            "Intention-to-treat analysis"
-          ],
-          subLinks: ["","","","","",""],
-        }
-      ]
-    },
-    {
-      id: "anatomy",
-      name: "Relevant Anatomy",
-      topics: [
-        {
-          id: "clin-anatomy",
-          name: "Clinical anatomy for anesthesia",
-          refs: ["MM"],
-          sub: [
-            "Airway & laryngeal innervation",
-            "Brachial plexus",
-            "Epidural & spinal anatomy (layers, ligaments)",
-            "Heart & great vessels",
-            "Celiac plexus & autonomic ganglia",
-            "Trigeminal & facial nerve"
-          ],
-          subLinks: ["","https://www.nysora.com/","","","",""],
-        }
-      ]
-    }
-  ]
-},
-{
-  id: "professional",
-  name: "Anesthesia Practice & Safety",
-  icon: "shield-check",
-  color: "#6366f1",
-  sections: [
-    {
-      id: "safety-quality",
-      name: "Safety & Quality",
-      topics: [
-        {
-          id: "human-factors",
-          name: "Human factors & crisis resource management",
-          refs: ["MIL Ch.10", "Anesthesia Patient Safety Foundation"],
-          sub: [
-            "Crisis resource management principles",
-            "Checklists & cognitive aids",
-            "Human error & Swiss cheese model",
-            "Fatigue & performance",
-            "Team communication (SBAR, closed-loop)"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "quality",
-          name: "Quality improvement",
-          refs: ["MIL Ch.11"],
-          sub: [
-            "Structure-process-outcome",
-            "Sentinel events & root cause analysis",
-            "M&M review",
-            "Anesthesia Closed Claims",
-            "Reporting systems"
-          ],
-          subLinks: ["","","","",""],
-        }
-      ]
-    },
-    {
-      id: "ethics-law",
-      name: "Ethics & Law",
-      topics: [
-        {
-          id: "consent",
-          name: "Consent & capacity",
-          refs: ["MM Ch.6"],
-          sub: [
-            "Informed consent elements",
-            "Capacity assessment",
-            "Best interests & surrogate",
-            "Advance directives & DNAR in OR",
-            "Refusal of blood (Jehovah's Witness)"
-          ],
-          subLinks: ["","","","https://www.resus.org.uk/",""],
-        },
-        {
-          id: "medico-legal",
-          name: "Medico-legal aspects",
-          refs: ["MM Ch.6"],
-          sub: [
-            "Negligence & duty of care",
-            "Documentation standards",
-            "Confidentiality & GDPR/HIPAA",
-            "Brain death & organ donation ethics"
-          ],
-          subLinks: ["","https://litfl.com/","",""],
-        }
-      ]
-    },
-    {
-      id: "exam-prep",
-      name: "EDAIC / FRCA Exam Preparation",
-      topics: [
-        {
-          id: "edaic",
-          name: "EDAIC structure",
-          refs: ["EBA/ESAIC", "esaic.org"],
-          sub: [
-            "Part 1 MCQ (ITC) format",
-            "Part 2 SOE & OSCE",
-            "Syllabus topics & blueprint",
-            "Recommended reading (Stoelting, Miller, MM)",
-            "Mock exam strategy"
-          ],
-          subLinks: ["","","","",""],
-        },
-        {
-          id: "frca",
-          name: "FRCA structure",
-          refs: ["RCoA", "rcoa.ac.uk"],
-          sub: [
-            "Primary FRCA: MCQ, OSCE/SOE",
-            "Final FRCA: written, SOE",
-            "Curriculum &competency framework",
-            "Recommended texts & question banks"
-          ],
-          subLinks: ["https://www.rcoa.ac.uk/","https://www.rcoa.ac.uk/","",""],
-        }
-      ]
-    }
-  ]
-},
-{
-  id: "emerging",
-  name: "Emerging Topics in Anesthesiology & Critical Care",
-  icon: "activity",
-  color: "#ec4899",
-  sections: [
-    {
-      id: "new-technology",
-      name: "AI, Machine Learning & Digital Health",
-      desc: "How AI, ML, and digital technologies are transforming perioperative care and critical care medicine.",
-      topics: [
-        {
-          id: "ai-ml-applications",
-          name: "AI and machine learning in anesthesiology",
-          desc: "Predictive analytics, clinical decision support, and autonomous systems.",
-          refs: ["BJA 2023-24", "Anesthesiology journals"],
-          sub: [
-            "Predictive modeling: preop risk stratification (mortality, LOS, readmission)",
-            "Hypotension Prediction Index (HPI): ML algorithm predicting hypotension before it occurs",
-            "Depth of anesthesia monitoring: AI-enhanced EEG interpretation",
-            "Ultrasound image analysis: automated structure identification for regional blocks and vascular access",
-            "Closed-loop anesthesia delivery: automated propofol-remifentanil TCI with real-time feedback",
-            "Natural language processing: extracting data from EHR for research and QI",
-            "OR workflow optimization: scheduling, turnover prediction, supply chain",
-            "Limitations: data bias, model generalizability, regulatory challenges"
-          ],
-          links: ["https://litfl.com/ai-in-anesthesia/","https://www.openanesthesia.org/ai-in-anesthesia/"],
-          subLinks: ["","","","https://www.openanesthesia.org/ultrasound-image-analysis/","https://litfl.com/closed-loop-anesthesia/","","",""]
-        },
-        {
-          id: "digital-health",
-          name: "Digital health and telemedicine",
-          desc: "Telemedicine, wearable monitoring, and mobile health applications in perioperative care.",
-          refs: ["MIL Ch.12", "JAMA 2023"],
-          sub: [
-            "Tele-preoperative clinic: virtual assessment, patient education, workflow",
-            "Wearable sensors: continuous HR, SpO2, activity, sleep tracking pre/postop",
-            "Remote postoperative monitoring: early detection of complications (RSBI, SpO2)",
-            "Tele-ICU: remote intensivist coverage, outcomes evidence",
-            "Mobile apps for perioperative optimization: prehabilitation, medication adherence",
-            "Regulatory considerations: HIPAA/GDPR, telehealth licensure, reimbursement"
-          ],
-          links: ["https://litfl.com/telemedicine/","https://www.openanesthesia.org/telemedicine/"],
-          subLinks: ["","","","https://litfl.com/tele-icu/","",""]
-        },
-        {
-          id: "digital-twin-simulation",
-          name: "Digital twins and in silico modeling",
-          desc: "Patient-specific digital replicas for personalized anesthesia planning.",
-          refs: ["J Clin Monit 2024", "BJA Education"],
-          sub: [
-            "Digital twin concept: real-time patient data mirror for decision support",
-            "Pharmacokinetic digital twins: predicting individual drug concentrations",
-            "Hemodynamic digital twins: predicting response to fluids and vasopressors",
-            "Training applications: virtual reality for crisis simulation",
-            "Limitations: data requirements, validation, ethical considerations"
-          ]
-        },
-        {
-          id: "robotics-anesthesia",
-          name: "Robotics and automation in anesthesia",
-          desc: "Robotic systems for airway management, ultrasound, and drug delivery.",
-          refs: ["J Clin Monit 2023", "BJA 2024"],
-          sub: [
-            "Robotic TCI systems: automated target-controlled infusion without manual programming",
-            "Robot-assisted airway management: Keystone, video-laryngoscope robotic arms",
-            "Robotic ultrasound systems: tele-ultrasound for remote guidance",
-            "Automated fluid delivery systems: closed-loop fluid resuscitation",
-            "Outcomes evidence: safety, efficiency, cost-effectiveness"
-          ]
-        }
-      ]
-    },
-    {
-      id: "new-pharmacology",
-      name: "Emerging Pharmacologic Innovations",
-      desc: "New drugs, reversal agents, and pharmacologic strategies entering clinical practice.",
-      topics: [
-        {
-          id: "novel-iv-sedatives",
-          name: "Novel IV sedatives and analgesics",
-          desc: "New drugs including remimazolam, ciprofol, oliceridine.",
-          refs: ["BJA Education 2024", "Anesthesia & Analgesia"],
-          sub: [
-            "Remimazolam: ultra-short-acting benzodiazepine, organ-independent metabolism, approved for procedural sedation",
-            "Ciprofol (HSK3486): propofol analog, GABA-A agonist, less injection pain, similar recovery profile",
-            "Oliceridine: mu-opioid G-protein biased agonist, reduced respiratory depression and GI effects vs morphine",
-            "ET-26: etomidate analog with reduced adrenal suppression, Phase III trials",
-            "HTX-011 (pamoja) and similar long-acting LA formulations",
-            "Novel NSAIDs: intravenous ibuprofen, diclofenac, celecoxib for multimodal"
-          ],
-          links: ["https://litfl.com/new-drugs/","https://www.openanesthesia.org/remimazolam/"],
-          subLinks: ["https://litfl.com/remimazolam/","https://litfl.com/ciprofol/","https://litfl.com/oliceridine/","","",""]
-        },
-        {
-          id: "advanced-reversal-agents",
-          name: "Advanced reversal agents and antidotes",
-          desc: "Novel reversal agents for NMBA, opioids, and anticoagulants.",
-          refs: ["BJA 2024", "Anesthesiology journals"],
-          sub: [
-            "Calabadion: novel reversal of steroidal NMBAs (rocuronium, vecuronium) with faster onset vs sugammadex",
-            "Ciraparantag (PER977): universal reversal agent for DOACs (apixaban, rivaroxaban, edoxaban, dabigatran)",
-            "Naloxegol and methylnaltrexone: peripherally acting mu-opioid antagonists for opioid-induced constipation",
-            "Opidolag: PEG-naloxol for prolonged opioid reversal",
-            "Sugammadex pediatric data: updated dosing, safety in children"
-          ],
-          subLinks: ["","https://litfl.com/ciraparantag/","","",""]
-        },
-        {
-          id: "pharmacogenomic-advances",
-          name: "Pharmacogenomics and personalized anesthesia",
-          desc: "Genetic testing to guide drug selection and dosing.",
-          refs: ["MIL Ch.30", "BJA Education"],
-          sub: [
-            "CYP450 genotyping: CYP2D6, CYP2C9, CYP2C19, CYP3A4 impact on opioid and benzodiazepine metabolism",
-            "OPRM1 polymorphism: A118G variant associated with higher opioid requirement",
-            "MTHFR and B12/folate metabolism: implications for perioperative homocysteine management",
-            "MALBAC and resistance testing: malignant hyperthermia RYR1/ CACNA1S screening",
-            "Pseudocholinesterase variants: prolonged succinylcholine apnea prediction",
-            "Implementation barriers: cost, turnaround time, interpretation, equity"
-          ]
-        }
-      ]
-    },
-    {
-      id: "new-monitoring",
-      name: "Novel Monitoring Technologies",
-      desc: "Advanced monitoring tools entering perioperative and critical care practice.",
-      topics: [
-        {
-          id: "advanced-hemodynamics",
-          name: "Advanced hemodynamic monitoring",
-          desc: "Beyond arterial line and CVP: new noninvasive and minimally invasive technologies.",
-          refs: ["J Clin Monit 2024", "Br J Anaesth"],
-          sub: [
-            "Hypotension Prediction Index (HPI): Acumen IQ sensor, machine learning algorithm predicting hypotension minutes before onset",
-            "ECCO2R (extracorporeal CO2 removal with CRRT): combined renal/respiratory support",
-            "Capillary refill time: validated as resuscitation endpoint in septic shock (ANDROMEDA-SHOCK)",
-            "Dynamic elastance: predicting blood pressure response to ventilation changes",
-            "Pulse wave analysis: calibration-free cardiac output (MostCare, LiDCOrapid)",
-            "Venous-to-arterial CO2 gap (PvaCO2): tissue perfusion indicator"
-          ],
-          subLinks: ["https://litfl.com/hpi/","","https://litfl.com/capillary-refill/","","",""]
-        },
-        {
-          id: "neuro-nociception-monitors",
-          name: "Brain function and nociception monitoring",
-          desc: "New EEG-based indices and automated pupillometry.",
-          refs: ["J Clin Monit 2024", "BJA"],
-          sub: [
-            "Nociception Level (NOL) index: multi-parameter (HR, GSR, HRV, PPG) nociception monitor",
-            "qNOX index: EEG-based probability of response to noxious stimulation",
-            "Pupillometry: automated pupillary reflex dilation (PRD) as analgesia indicator",
-            "Cerebral oximetry (NIRS): updates on thresholds for intervention",
-            "Automated EEG processing: patient state index, narcotrend, entropy in updated contexts"
-          ]
-        },
-        {
-          id: "point-care-technology",
-          name: "Point-of-care technology advances",
-          desc: "POCUS, noninvasive hemoglobin, continuous glucose monitoring in the OR.",
-          refs: ["BJA Education 2024", "J Cardiothorac Vasc Anesth"],
-          sub: [
-            "Point-of-care ultrasound (POCUS) in OR: gastric, lung, airway, cardiac, abdomen",
-            "Noninvasive hemoglobin monitoring: Masimo Rainbow, comparison with lab values",
-            "Continuous glucose monitoring in perioperative period: Dexcom G6, Libre in diabetic patients",
-            "Volumetric capnography: VCO2, alveolar dead space calculation as clinical tool",
-            "Thromboelastography (TEG/ROTEM) updates: newer assays, clinical algorithms for bleeding"
-          ]
-        }
-      ]
-    },
-    {
-      id: "ventilation-respiratory",
-      name: "Advances in Ventilation and Respiratory Support",
-      desc: "New evidence and techniques in perioperative and critical care ventilation.",
-      topics: [
-        {
-          id: "protective-ventilation-updates",
-          name: "Updated lung-protective ventilation strategies",
-          desc: "New evidence on tidal volume, PEEP titration, and driving pressure.",
-          refs: ["NEJM 2023-24", "Intensive Care Med"],
-          sub: [
-            "Driving pressure (plateau-PEEP): individualized target < 15 cmH2O, emerging as primary outcome in ARDS",
-            "PEEP titration: esophageal manometry, EIT, recruitment-to-inflation ratio",
-            "Spontaneous breathing in ARDS: updated evidence for early vs controlled ventilation",
-            "Neuromuscular blockade in ARDS: ROSE trial re-analysis, individualized approach",
-            "Prone positioning: updated evidence, protocol simplification",
-            "Ultraprotective ventilation with ECCO2R: tidal volume < 4 mL/kg in severe ARDS"
-          ],
-          subLinks: ["https://litfl.com/driving-pressure/","","","","",""]
-        },
-        {
-          id: "ecmo-evolution",
-          name: "ECMO evolution and configurations",
-          desc: "Advances in extracorporeal life support.",
-          refs: ["ELSO guidelines 2024", "Lancet Resp Med"],
-          sub: [
-            "Awake ECMO: non-intubated V-V ECMO, benefits for mobilization and weaning",
-            "ECCO2R devices: novel low-flow devices for ultraprotective ventilation",
-            "ECPR (extracorporeal CPR): patient selection, outcomes compared to conventional CPR",
-            "Ambulatory ECMO: mobile ECMO teams, inter-hospital transport protocols",
-            "V-A ECMO weaning: pressure-volume loop assessments, weaning protocols"
-          ],
-          subLinks: ["https://litfl.com/awake-ecmo/","","https://litfl.com/ecpr/","",""]
-        },
-        {
-          id: "hfnc-thrive",
-          name: "High-flow nasal oxygen and THRIVE evidence",
-          desc: "Expanding evidence for HFNO in perioperative and critical care settings.",
-          refs: ["NEJM 2023-24", "BJA"],
-          sub: [
-            "Preoxygenation with HFNO: obese patients, predicted difficult airway",
-            "THRIVE (Transnasal Humidified Rapid-Insufflation Ventilatory Exchange): prolonged apnea time",
-            "Post-extubation HFNO vs conventional oxygen: updated meta-analysis",
-            "Apneic oxygenation principles: dead space washout, flow-dependent CPAP effect",
-            "HFNO in immunocompromised patients: evidence update"
-          ]
-        }
-      ]
-    },
-    {
-      id: "regional-pain-advances",
-      name: "Regional Anesthesia and Pain Management Advances",
-      desc: "New blocks, adjuvants, and evidence in regional and pain medicine.",
-      topics: [
-        {
-          id: "fascial-plane-blocks",
-          name: "Fascial plane blocks update",
-          desc: "ESP, PECS, QL, erector spinae, and other novel interfascial blocks.",
-          refs: ["BJA Education 2024", "Reg Anesth Pain Med"],
-          sub: [
-            "Erector spinae plane (ESP) block: mechanism, evidence, controversies",
-            "PECS blocks: PECS I, PECS II, comparison with paravertebral",
-            "Quadratus lumborum (QL) block: QL1, QL2, QL3, transmuscular vs anterior",
-            "Serratus anterior plane block: as alternative to thoracic paravertebral for thoracotomy",
-            "Adductor canal block vs femoral nerve block: quad-sparing for knee surgery",
-            "Novel adjuvants: dexmedetomidine, liposomal bupivacaine, magnesium"
-          ],
-          subLinks: ["https://www.nysora.com/erector-spinae/","https://www.nysora.com/pecs-block/","https://www.nysora.com/quadratus-lumborum/","https://www.nysora.com/serratus-anterior/","https://www.nysora.com/adductor-canal/",""]
-        },
-        {
-          id: "chronic-pain-emerging",
-          name: "Emerging chronic pain interventions",
-          desc: "Novel interventional and pharmacologic treatments for chronic pain.",
-          refs: ["Pain Med 2024", "Reg Anesth Pain Med"],
-          sub: [
-            "Genicular nerve RFA for chronic knee pain: updated evidence",
-            "Cooled vs conventional RFA: outcomes for sacroiliac and facet pain",
-            "Spinal cord stimulation: closed-loop, high-frequency (10-kHz), burst paradigms",
-            "Dorsal root ganglion (DRG) stimulation: evidence compared to traditional SCS",
-            "Ketamine infusion therapy for chronic pain: protocols, risks, benefits"
-          ]
-        },
-        {
-          id: "continuous-catheter-regional",
-          name: "Continuous catheter techniques and drug delivery",
-          desc: "Advances in perineural catheters, infusion pumps, and ambulatory regional.",
-          refs: ["Reg Anesth Pain Med 2024", "BJA"],
-          sub: [
-            "Liposomal bupivacaine (Exparel): mechanism, evidence, meta-analysis results",
-            "Ambulatory continuous peripheral nerve blocks: catheter types, pump technology",
-            "Ultrasound-guided catheter placement: current practice and outcomes",
-            "Intermittent bolus vs continuous infusion: evidence for superior sensory blockade"
-          ]
-        }
-      ]
-    },
-    {
-      id: "pediatric-advances",
-      name: "Pediatric Anesthesia Updates",
-      desc: "Recent evidence and guidelines in pediatric anesthesia.",
-      topics: [
-        {
-          id: "pediatric-pharm-updates",
-          name: "Pediatric pharmacology updates",
-          desc: "New dosing guidelines, concerns, and approved drugs.",
-          refs: ["Pediatr Anesth 2024", "BJA Education"],
-          sub: [
-            "Dexmedetomidine in pediatrics: expanded use for sedation, emergence delirium",
-            "Remimazolam in children: emerging evidence for procedural sedation",
-            "Sugammadex dosing in neonates, infants: updated weight-based protocols",
-            "TIVA in pediatric patients: TC1 models, dosing challenges",
-            "APRICOT study follow-up: complications and safety in pediatric anesthesia"
-          ]
-        },
-        {
-          id: "pediatric-ultrasound-advances",
-          name: "Pediatric regional anesthesia advances",
-          desc: "Ultrasound-guided techniques and safety in children.",
-          refs: ["Pediatr Anesth 2024", "Reg Anesth Pain Med"],
-          sub: [
-            "LA dosing: maximum doses (mg/kg) for common LAs in children",
-            "Caudal blocks: dexmedetomidine as adjuvant, ultrasound vs landmark",
-            "Targeted blocks for specific surgeries: ilioinguinal/iliohypogastric, TAP, quadratus lumborum",
-            "Continuous perineural catheters in pediatrics: indications and safety",
-            "Emergence delirium prevention: new pharmacologic and non-pharmacologic approaches"
-          ]
-        }
-      ]
-    }
-  ]
-},
-];
+  // ──────────────────────────────────────────────
+  // CATEGORY 1 — Physics & Clinical Measurement
+  // ──────────────────────────────────────────────
+  {
+    id: "physics-measurement",
+    name: "Physics & Clinical Measurement",
+    icon: "atom",
+    color: "#3b82f6",
+    sections: [
+      {
+        id: "gas-laws",
+        name: "Gas Laws & Physics Principles",
+        topics: [
+          {
+            id: "gas-laws",
+            name: "Gas Laws",
+            refs: ["MM Ch.1", "DD Ch.1", "RCoA G2"],
+            icon: "thermometer",
+            sub: [
+              "Ideal gas law & universal gas constant",
+              "Boyle's law: pressure-volume relationship",
+              "Charles's law: temperature-volume",
+              "Gay-Lussac's law: pressure-temperature",
+              "Avogadro's hypothesis & molar volume",
+              "Dalton's law of partial pressures",
+              "Henry's law: gas solubility in liquids",
+              "Fick's law of diffusion",
+              "Graham's law: rate of diffusion",
+              "Critical temperature, pressure & the Joule-Thomson effect",
+              "Vapour pressure & saturated vapour pressure",
+              "Bernoulli's principle, Venturi effect, Coanda effect",
+              "Laplace's law: sphere tension & collapsing pressure",
+              "Poiseuille's law: laminar flow, Hagen-Poiseuille equation",
+              "Reynolds number: laminar vs turbulent flow",
+              "Pascal's principle: hydraulic systems"
+            ],
+            subLinks: ["","","","","","","","","","","","","","","",""]
+          },
+          {
+            id: "physics-basics",
+            name: "Basic Physics Concepts",
+            refs: ["MM Ch.1", "DD Ch.1", "RCoA G2"],
+            icon: "zap",
+            sub: [
+              "SI base units & derived units",
+              "Force, work, energy, power",
+              "Ohm's law, impedance, capacitance, inductance",
+              "Electromagnetic spectrum & medical applications",
+              "Ultrasound physics: frequency, wavelength, attenuation, piezoelectric effect",
+              "Doppler effect: red-shift vs blue-shift, continuous vs pulsed wave Doppler",
+              "Laser physics: population inversion, stimulated emission",
+              "Nuclear physics: isotopes, half-life, radioactive decay",
+              "Optics principles in clinical measurement: refraction, reflection, fiberoptics"
+            ],
+            subLinks: ["","","","","","","","",""]
+          },
+          {
+            id: "measurement-stats",
+            name: "Measurement Theory & Statistics",
+            refs: ["MM Ch.1", "RCoA G2"],
+            icon: "bar-chart",
+            sub: [
+              "Accuracy, precision, bias, & calibration",
+              "Sensitivity & specificity of monitors",
+              "Frequency response, damping, resonance",
+              "Signal-to-noise ratio & filtering",
+              "Bridge circuits, Wheatstone bridge, strain gauge",
+              "Amplifiers: differential, operational amplifier",
+              "Transducers: types, zeroing, calibration",
+              "Data interpretation: ROC curves, Bland-Altman analysis",
+              "Survival analysis: Kaplan-Meier curves",
+              "Systematic reviews & meta-analysis: forest plot, funnel plot"
+            ],
+            subLinks: ["","","","","","","","","",""]
+          }
+        ]
+      },
+      {
+        id: "clinical-monitoring",
+        name: "Clinical Monitoring",
+        topics: [
+          {
+            id: "cardiovascular-monitoring",
+            name: "Cardiovascular Monitoring",
+            refs: ["MM Ch.21", "DD Ch.4", "RCoA G2"],
+            icon: "heart",
+            sub: [
+              "ECG: leads, waveforms, ST analysis, 5-lead system",
+              "Invasive BP: arterial line, damping, resonance, zeroing, leveling",
+              "CVP: waveform, interpretation, complications",
+              "Pulmonary artery catheter: waveforms, CO by thermodilution, complications",
+              "Cardiac output: Fick, thermodilution, lithium dilution (LiDCO), pulse contour analysis (PiCCO, FloTrac)",
+              "Oesophageal Doppler: flow time, stroke volume",
+              "Transthoracic & transoesophageal echocardiography (TTE/TOE)",
+              "Bispectral index (BIS) & depth of anaesthesia",
+              "Near-infrared spectroscopy (NIRS) cerebral oximetry",
+              "Peripheral perfusion index & pleth variability index (PVI)"
+            ],
+            subLinks: ["","","","","","","","","",""]
+          },
+          {
+            id: "respiratory-monitoring",
+            name: "Respiratory Monitoring",
+            refs: ["MM Ch.21", "DD Ch.3", "RCoA G2"],
+            icon: "lung",
+            sub: [
+              "Pulse oximetry: Beer-Lambert law, absorption spectra, limitations",
+              "Capnography: waveform phases, numerical values, interpretation",
+              "Oxygen analysers: paramagnetic, fuel cell, galvanic, zirconia",
+              "Spirometry: FVC, FEV1, PEFR, flow-volume loops",
+              "Gas exchange: A-a gradient, dead space (Bohr), shunt (Qs/Qt)",
+              "Respiratory mechanics: compliance, resistance, work of breathing",
+              "Inspired & expired gas analysis: mass spectrometry, Raman scattering",
+              "Blood gas analysis: pH, PaO2, PaCO2, HCO3, BE, lactate, electrolyte measurement methods"
+            ],
+            subLinks: ["","","","","","","",""]
+          },
+          {
+            id: "neuromuscular-monitoring",
+            name: "Neuromuscular & Neurological Monitoring",
+            refs: ["MM Ch.21", "DD Ch.2", "RCoA G2"],
+            icon: "brain",
+            sub: [
+              "TOF, DBS, PTC, tetanic stimulation",
+              "Acceleromyography, electromyography, mechanomyography",
+              "EEG, evoked potentials (SSEP, MEP, AEP)",
+              "ICP monitoring: intraventricular, intraparenchymal, subdural",
+              "Jugular venous oximetry (SjvO2)",
+              "Cerebral blood flow measurement: xenon CT, TCD"
+            ],
+            subLinks: ["","","","","",""]
+          }
+        ]
+      },
+      {
+        id: "equipment",
+        name: "Anaesthetic Equipment & Safety",
+        topics: [
+          {
+            id: "anaesthesia-machine",
+            name: "Anaesthesia Machine & Breathing Systems",
+            refs: ["MM Ch.2", "DD Ch.5", "RCoA G2"],
+            icon: "monitor",
+            sub: [
+              "Anaesthesia machine: gas supply, flowmeters, vaporizers, common gas outlet",
+              "Pipeline & cylinder supply: colour coding, pin-index, Schrader probes, pressure regulators",
+              "Flowmeters: variable orifice (Rotameter), electronic, limitations",
+              "Vaporizers: plenum (Tec 5/6/7), drawover (Goldman), desflurane (Tec 6), measured flow",
+              "Breathing systems: Mapleson A–F classification, circle system, scavenging",
+              "CO2 absorbents: soda lime, Baralyme, Amsorb — reactions, compound A, CO production",
+              "Checklist & pre-use testing: FDA checklist, leaks, low-pressure system test",
+              "Suction equipment & medical gas outlets",
+              "Oxygen failure: prevention devices, fail-safe, oxygen flush",
+              "Universal anaesthetic machine standards (ISO 80601-2-13)"
+            ],
+            subLinks: ["","","","","","","","","",""]
+          },
+          {
+            id: "safety-electrical",
+            name: "Electrical Safety & Diathermy",
+            refs: ["MM Ch.1", "DD Ch.8", "RCoA G2"],
+            icon: "zap",
+            sub: [
+              "Electrosurgery: monopolar vs bipolar, circuit, dispersive pad",
+              "Burns: diathermy pad burns, direct coupling, capacitive coupling",
+              "Explosion risk: alcohol prep, bowel gas, laser surgery",
+              "Fire triangle & airway fires",
+              "Microshock & macroshock, leakage current",
+              "Electrical safety: earthing, isolation transformers, RCD",
+              "Equipotential grounding in critical care areas",
+              "Electrical interference & shielding"
+            ],
+            subLinks: ["","","","","","","",""]
+          },
+          {
+            id: "infusion-devices",
+            name: "Infusion Devices & Ventilators",
+            refs: ["DD Ch.6", "DD Ch.7", "RCoA G2"],
+            icon: "droplets",
+            sub: [
+              "Infusion pumps: syringe, peristaltic, volumetric, TCI (Diprifusor)",
+              "Target Controlled Infusion (TCI) principles: Marsh, Schnider models",
+              "PCA devices: programming, safety features, monitoring",
+              "Ventilators: classification (pressure/volume, flow, cycling)",
+              "Ventilator modes: VC, PC, PSV, SIMV, APRV, HFO",
+              "Humidification: active (heated) vs passive (HME)",
+              "Implantable devices: pacemaker, ICD, VAD — anaesthesia implications"
+            ],
+            subLinks: ["","","","","","",""]
+          }
+        ]
+      },
+      {
+        id: "imaging-radiation",
+        name: "Imaging & Radiation",
+        topics: [
+          {
+            id: "radiology",
+            name: "Radiology & Imaging",
+            refs: ["RCoA G2"],
+            icon: "scan",
+            sub: [
+              "X-ray production: tube, anode, filtration, collimation",
+              "Image intensification & digital radiography",
+              "CT: Hounsfield units, windowing, contrast, radiation dose",
+              "MRI: magnetic field, gradients, RF pulses, T1/T2 weighting, safety (ferromagnetic)",
+              "Ultrasound: B-mode, M-mode, colour Doppler, spectral Doppler",
+              "C-arm fluoroscopy: safety, scatter radiation",
+              "Contrast media: iodinated, gadolinium — reactions, nephrotoxicity"
+            ],
+            subLinks: ["","","","","","",""]
+          },
+          {
+            id: "radiation-safety",
+            name: "Radiation Safety & Protection",
+            refs: ["RCoA G2"],
+            icon: "shield",
+            sub: [
+              "ALARA principle, time/distance/shielding",
+              "Dosimetry: film badge, TLD, OSL",
+              "Ionising Radiation Regulations 2017",
+              "Pregnancy & radiation: risk, dose limits, work restrictions",
+              "Personal protective equipment: lead apron, thyroid shield, lead glasses"
+            ],
+            subLinks: ["","","","",""]
+          }
+        ]
+      },
+      {
+        id: "clinical-physics",
+        name: "Clinical Physics Topics",
+        topics: [
+          {
+            id: "ultrasound-physics",
+            name: "Ultrasound & Doppler Physics (Applied to Regional & Vascular Access)",
+            refs: ["MM Ch.17", "DD Ch.4", "RCoA G2"],
+            icon: "radio",
+            sub: [
+              "Piezoelectric effect & transducer design",
+              "Frequency, wavelength, attenuation: depth/resolution trade-off",
+              "Brightness mode (B-mode), Motion mode (M-mode)",
+              "Colour Doppler & power Doppler: velocity estimation, aliasing",
+              "Spectral Doppler: PW vs CW, angle correction, sample volume",
+              "Tissue harmonic imaging & compound imaging",
+              "Artefacts: acoustic shadowing, enhancement, reverberation, mirror, anisotropy",
+              "Bioeffects: thermal index, mechanical index, safety (ALARA)",
+              "Needle visualisation: echogenic needles, beam steering"
+            ],
+            subLinks: ["","","","","","","","",""]
+          },
+          {
+            id: "humidifiers-filters",
+            name: "Humidifiers, Filters & Breathing Circuits",
+            refs: ["DD Ch.3", "DD Ch.7", "RCoA G2"],
+            icon: "filter",
+            sub: [
+              "HME (Heat & Moisture Exchanging) filters: efficiency, dead space, resistance",
+              "Active humidifiers: heated wire circuits, water baths",
+              "Breathing circuit classification: Mapleson A–F, circle, Bain, coaxial",
+              "Circuit resistance & work of breathing",
+              "Scavenging: active vs passive, flow rates, safety"
+            ],
+            subLinks: ["","","","",""]
+          }
+        ]
+      }
+    ]
+  },
 
-if (typeof window !== "undefined") {
-  window.CURRICULUM = CURRICULUM;
-}
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = CURRICULUM;
-}
+  // ──────────────────────────────────────────────
+  // CATEGORY 2 — Biochemistry, Cell Biology & Mathematics
+  // ──────────────────────────────────────────────
+  {
+    id: "biochemistry-cell",
+    name: "Biochemistry, Cell Biology & Mathematics",
+    icon: "flask-conical",
+    color: "#22c55e",
+    sections: [
+      {
+        id: "cell-biology",
+        name: "Cell & Molecular Biology",
+        topics: [
+          {
+            id: "cell-structure",
+            name: "Cell Structure & Function",
+            refs: ["RCoA G2", "MM Ch.1"],
+            icon: "dna",
+            sub: [
+              "Cell membrane: lipid bilayer, fluid mosaic model, ion channels, receptors",
+              "Mitochondria: oxidative phosphorylation, ATP production",
+              "Endoplasmic reticulum, Golgi apparatus, lysosomes, peroxisomes",
+              "Cytoskeleton: microtubules, actin, intermediate filaments",
+              "Nucleus: DNA, RNA, transcription, translation",
+              "Cell cycle: G1, S, G2, M phases, mitosis vs meiosis",
+              "Apoptosis & necrosis: pathways, caspases, Bcl-2 family",
+              "Cell signalling: G-protein coupled receptors, tyrosine kinase receptors, second messengers",
+              "Ion channels: voltage-gated, ligand-gated, mechanically gated"
+            ],
+            subLinks: ["","","","","","","","",""]
+          },
+          {
+            id: "molecular-biology",
+            name: "Molecular Biology & Genetics",
+            refs: ["RCoA G2"],
+            icon: "dna",
+            sub: [
+              "DNA replication, repair, recombination",
+              "Transcription, RNA processing, alternative splicing",
+              "Translation, post-translational modification",
+              "Gene expression regulation: promoters, enhancers, transcription factors",
+              "Mendelian inheritance: autosomal dominant/recessive, X-linked",
+              "Pharmacogenomics: CYP450 polymorphisms, butyrylcholinesterase variants",
+              "CRISPR & gene therapy: principles, applications",
+              "Molecular techniques: PCR, Western blot, ELISA, sequencing"
+            ],
+            subLinks: ["","","","","","","",""]
+          }
+        ]
+      },
+      {
+        id: "biochemistry",
+        name: "Biochemistry & Metabolism",
+        topics: [
+          {
+            id: "metabolism",
+            name: "Metabolic Pathways",
+            refs: ["RCoA G2", "MM Ch.22"],
+            icon: "flask-conical",
+            sub: [
+              "Carbohydrate metabolism: glycolysis, gluconeogenesis, TCA cycle, ETC",
+              "Lipid metabolism: beta-oxidation, ketogenesis, lipogenesis",
+              "Protein metabolism: transamination, deamination, urea cycle",
+              "Oxygen cascade: inspired to cellular, PaO2, SaO2, DO2, VO2",
+              "Oxygen delivery & consumption: DO2, VO2, O2ER, critical DO2",
+              "Lactate: aerobic vs anaerobic production, lactate shuttle, hyperlactataemia",
+              "Acid-base chemistry: Henderson-Hasselbalch equation, strong ion difference (Stewart)",
+              "buffer systems in blood: bicarbonate, phosphate, protein, haemoglobin"
+            ],
+            subLinks: ["","","","","","","",""]
+          },
+          {
+            id: "enzymes-proteins",
+            name: "Enzymes & Proteins",
+            refs: ["RCoA G2"],
+            icon: "protein",
+            sub: [
+              "Enzyme kinetics: Michaelis-Menten, Vmax, Km, competitive/non-competitive inhibition",
+              "Allosteric regulation & cooperativity (haemoglobin)",
+              "Protein structure: primary, secondary, tertiary, quaternary",
+              "Plasma proteins: albumin, globulins, acute phase reactants",
+              "Haemoglobin: structure, O2 dissociation curve, 2,3-DPG, fetal Hb",
+              "Myoglobin vs haemoglobin: O2 affinity, kinetics"
+            ],
+            subLinks: ["","","","","",""]
+          }
+        ]
+      },
+      {
+        id: "mathematics-stats",
+        name: "Mathematics & Statistics for Anaesthesia",
+        topics: [
+          {
+            id: "maths",
+            name: "Mathematical Principles",
+            refs: ["RCoA G2", "MM Ch.1"],
+            icon: "sigma",
+            sub: [
+              "Exponential function & decay: washout curves, time constants",
+              "Logarithms: natural log, log10, log-linear plots",
+              "Half-life calculation and time constants",
+              "Dilution equations: C1V1 = C2V2",
+              "Pharmacokinetic modelling: compartment models, volume of distribution",
+              "Dose calculations: mg/kg, % solutions, molarity",
+              "Electrical concepts: Ohm's law V=IR, power P=IV, capacitance Q=CV",
+              "Units: SI prefixes, conversions, temperature (Celsius to Kelvin)"
+            ],
+            subLinks: ["","","","","","","",""]
+          },
+          {
+            id: "statistics",
+            name: "Statistical Methods",
+            refs: ["RCoA G2"],
+            icon: "bar-chart",
+            sub: [
+              "Descriptive statistics: mean, median, mode, SD, SEM, range, IQR",
+              "Normal distribution: z-scores, confidence intervals",
+              "Hypothesis testing: null/alternative, type I & II errors, power",
+              "Parametric tests: t-test (paired/unpaired), ANOVA, repeated measures",
+              "Non-parametric tests: Mann-Whitney U, Wilcoxon, Kruskal-Wallis, Chi-squared, Fisher's exact",
+              "Correlation & regression: Pearson, Spearman, linear regression, logistic regression",
+              "Diagnostic test: sensitivity, specificity, PPV, NPV, likelihood ratios",
+              "Survival analysis: Kaplan-Meier, Cox proportional hazards",
+              "Meta-analysis: forest plot, funnel plot, heterogeneity (I²)",
+              "Number Needed to Treat (NNT) & Number Needed to Harm (NNH)",
+              "Relative risk, absolute risk, odds ratio",
+              "Bland-Altman analysis: limits of agreement"
+            ],
+            subLinks: ["","","","","","","","","","","",""]
+          }
+        ]
+      }
+    ]
+  },
+
+  // ──────────────────────────────────────────────
+  // CATEGORY 3 — Applied Anatomy
+  // ──────────────────────────────────────────────
+  {
+    id: "applied-anatomy",
+    name: "Applied Anatomy",
+    icon: "bone",
+    color: "#f59e0b",
+    sections: [
+      {
+        id: "airway-anatomy",
+        name: "Airway & Respiratory Anatomy",
+        topics: [
+          {
+            id: "upper-airway",
+            name: "Upper Airway Anatomy",
+            refs: ["MM Ch.15", "MIL Ch.27", "RCoA G2"],
+            icon: "larynx",
+            sub: [
+              "Nasal cavity, oral cavity, pharynx (nasopharynx, oropharynx, laryngopharynx)",
+              "Larynx: cartilages (thyroid, cricoid, arytenoid, epiglottis), intrinsic muscles, recurrent laryngeal nerve",
+              "Vocal cords: true vs false, rima glottidis, innervation",
+              "Supraglottic region: vallecula, piriform fossae",
+              "Blood supply: superior/inferior laryngeal arteries",
+              "Lymphatic drainage of larynx & pharynx"
+            ],
+            subLinks: ["","","","","",""]
+          },
+          {
+            id: "lower-airway",
+            name: "Lower Airway & Thorax",
+            refs: ["MM Ch.19", "MIL Ch.27", "RCoA G2"],
+            icon: "lung",
+            sub: [
+              "Trachea: length, diameter, carina, bifurcation landmarks",
+              "Bronchial tree: right vs left main bronchus, segmental bronchi",
+              "Bronchopulmonary segments",
+              "Pleura: parietal vs visceral, recesses, pleural spaces",
+              "Mediastinum: boundaries, contents, divisions",
+              "Thoracic inlet & outlet: structures, relationships",
+              "Intercostal space: muscles, nerves, vessels"
+            ],
+            subLinks: ["","","","","","",""]
+          }
+        ]
+      },
+      {
+        id: "cardiac-anatomy",
+        name: "Cardiovascular Anatomy",
+        topics: [
+          {
+            id: "heart-anatomy",
+            name: "Heart & Great Vessels",
+            refs: ["MM Ch.18", "MIL Ch.35", "RCoA G2"],
+            icon: "heart",
+            sub: [
+              "Cardiac chambers: internal anatomy, valves, papillary muscles",
+              "Coronary arteries: right, left (LAD, circumflex), dominance",
+              "Coronary sinus & cardiac veins",
+              "Conduction system: SA node, AV node, Bundle of His, Purkinje fibres",
+              "Pericardium: fibrous & serous, pericardial sinuses",
+              "Great vessels: aorta (arch branches), SVC, IVC, pulmonary trunk",
+              "Fetal circulation: ductus venosus, foramen ovale, ductus arteriosus"
+            ],
+            subLinks: ["","","","","","",""]
+          },
+          {
+            id: "vascular-anatomy",
+            name: "Peripheral Vascular Anatomy for Access",
+            refs: ["MM Ch.21", "MIL Ch.33", "RCoA G2"],
+            icon: "activity",
+            sub: [
+              "Internal jugular vein: anatomy, triangles of neck, relationships",
+              "Subclavian vein: infraclavicular approach, relationships",
+              "Femoral vessels: femoral triangle, nerve relationship",
+              "Radial & ulnar arteries: Allen's test, palmar arch",
+              "Brachial artery & basilic/cephalic veins: PICC lines",
+              "Axillary artery & brachial plexus relationships"
+            ],
+            subLinks: ["","","","","",""]
+          }
+        ]
+      },
+      {
+        id: "neuroanatomy",
+        name: "Neuroanatomy & Spine",
+        topics: [
+          {
+            id: "brain-cranial",
+            name: "Brain & Cranial Nerves",
+            refs: ["MM Ch.24", "MIL Ch.37", "RCoA G2"],
+            icon: "brain",
+            sub: [
+              "Cerebral hemispheres: lobes, functional areas, Broca's & Wernicke's",
+              "Basal ganglia, thalamus, hypothalamus, limbic system",
+              "Brainstem: midbrain, pons, medulla — cranial nerve nuclei",
+              "Cerebellum: structure, function, connections",
+              "Cranial nerves: I–XII, foramina, functions",
+              "Cerebrospinal fluid: production, circulation, absorption",
+              "Circle of Willis: arteries, variations, collateral flow",
+              "Meninges: dura, arachnoid, pia — epidural/subdural/subarachnoid spaces"
+            ],
+            subLinks: ["","","","","","","",""]
+          },
+          {
+            id: "spine-nerve",
+            name: "Spine & Spinal Cord",
+            refs: ["MM Ch.17", "MIL Ch.33", "RCoA G2"],
+            icon: "spine",
+            sub: [
+              "Vertebral column: 33 vertebrae, curvatures",
+              "Spinal cord: segments, grey vs white matter, tracts (corticospinal, spinothalamic, dorsal columns)",
+              "Spinal nerves: 31 pairs, dorsal/ventral roots, dermatomes, myotomes",
+              "Meninges: dura, arachnoid, pia, epidural/intrathecal spaces",
+              "Cauda equina & conus medullaris (L1-2 landmark)",
+              "Ligamentum flavum, interspinous ligament, supraspinous ligament",
+              "Blood supply of spinal cord: artery of Adamkiewicz (great anterior radicular artery)",
+              "Vertebral venous plexus (Batson's plexus)"
+            ],
+            subLinks: ["","","","","","","",""]
+          },
+          {
+            id: "peripheral-nerves",
+            name: "Peripheral Nervous System & Plexuses",
+            refs: ["MM Ch.17", "MIL Ch.34", "RCoA G2"],
+            icon: "nerve",
+            sub: [
+              "Brachial plexus: roots (C5-T1), trunks, divisions, cords, terminal nerves",
+              "Lumbar plexus: T12-L4, femoral, obturator, lateral femoral cutaneous",
+              "Sacral plexus: L4-S4, sciatic, pudendal, superior/inferior gluteal",
+              "Cervical plexus: C1-C4, phrenic nerve (C3-5)",
+              "Intercostal nerves: T1-T11, dermatomal distribution",
+              "Dermatomes & myotomes: clinical significance for regional anaesthesia"
+            ],
+            subLinks: ["","","","","",""]
+          }
+        ]
+      },
+      {
+        id: "regional-surface-anatomy",
+        name: "Regional & Surface Anatomy",
+        topics: [
+          {
+            id: "surface-anatomy",
+            name: "Surface Anatomy & Landmarks",
+            refs: ["MIL Ch.34", "RCoA G2"],
+            icon: "map",
+            sub: [
+              "Neck: cricoid, thyroid cartilage, suprasternal notch, cricothyroid membrane",
+              "Chest: intercostal spaces, angle of Louis, mid-clavicular line",
+              "Abdomen: quadrants, McBurney's point, inguinal ligament",
+              "Back: spinous processes, Tuffier's line (iliac crests L4)",
+              "Anatomical snuff box, radial artery at wrist",
+              "Femoral triangle, popliteal fossa"
+            ],
+            subLinks: ["","","","","",""]
+          },
+          {
+            id: "anatomy-special",
+            name: "Anatomy for Special Procedures",
+            refs: ["RCoA G2"],
+            icon: "target",
+            sub: [
+              "Tracheostomy: cricothyroidotomy, surgical airway anatomy",
+              "Chest drain: safe triangle, intercostal approach",
+              "Central line: IJ, SC, femoral — ultrasound anatomy",
+              "Lumbar puncture & epidural: interspinous approach, paramedian",
+              "Arterial line: radial, femoral, brachial, dorsalis pedis"
+            ],
+            subLinks: ["","","","",""]
+          }
+        ]
+      }
+    ]
+  },
+
+  // ──────────────────────────────────────────────
+  // CATEGORY 4 — Physiology
+  // ──────────────────────────────────────────────
+  {
+    id: "physiology",
+    name: "Physiology for Anesthesia",
+    icon: "activity",
+    color: "#14b8a6",
+    sections: [
+      {
+        id: "cardiovascular-physiology",
+        name: "Cardiovascular Physiology",
+        topics: [
+          {
+            id: "cardiac-physiology",
+            name: "Cardiac Physiology",
+            refs: ["MM Ch.18", "MIL Ch.35", "RCoA G2"],
+            icon: "heart",
+            sub: [
+              "Cardiac cycle: pressure-volume loop, Wiggers diagram",
+              "Action potential: phases 0-4, ion channels, pacemaker vs non-pacemaker",
+              "Excitation-contraction coupling",
+              "Frank-Starling mechanism, preload, afterload, contractility",
+              "Starling forces & fluid compartments",
+              "Cardiac output: determinants, measurement, Fick principle, thermodilution",
+              "Coronary circulation: autoregulation, O2 supply/demand",
+              "Myocardial oxygen consumption: determinants, measurement",
+              "ECG: waves, intervals, axis, common abnormalities",
+              "Baroreceptor reflex, chemoreceptor reflex, Bezold-Jarisch reflex",
+              "Valsalva manoeuvre: phases, haemodynamic changes",
+              "Autoregulation of blood flow (metabolic, myogenic, shear stress)",
+              "Microcirculation: precapillary sphincters, exchange, lymphatics"
+            ],
+            subLinks: ["","","","","","","","","","","","",""]
+          },
+          {
+            id: "cv-pathophysiology",
+            name: "Pathophysiology of Cardiovascular Disease",
+            refs: ["MM Ch.18", "MIL Ch.35"],
+            icon: "activity",
+            sub: [
+              "Heart failure: systolic vs diastolic, HFpEF, HFrEF, compensation",
+              "Valvular disease: AS, AR, MS, MR — haemodynamic impact",
+              "Hypertension: systemic & pulmonary, end-organ effects",
+              "Ischaemic heart disease: stable, unstable, NSTEMI, STEMI",
+              "Cardiomyopathies: HCM, DCM, RCM, Takotsubo",
+              "Pericardial disease: tamponade, constriction",
+              "Arrhythmias: mechanisms (re-entry, automaticity, triggered), classification"
+            ],
+            subLinks: ["","","","","","",""]
+          },
+          {
+            id: "fetal-circulation",
+            name: "Fetal & Transitional Circulation",
+            refs: ["MM Ch.27", "MIL Ch.47", "RCoA G3"],
+            icon: "baby",
+            sub: [
+              "Fetal circulation: ductus venosus, foramen ovale, ductus arteriosus",
+              "Transition at birth: closure of shunts, pulmonary circulation establishment",
+              "Persistence of fetal circulation (PPHN)",
+              "Cardiovascular changes with age (neonate to elderly)"
+            ],
+            subLinks: ["","","",""]
+          },
+          {
+            id: "obstetric-cv-physiology",
+            name: "Obstetric Cardiovascular Physiology",
+            refs: ["MM Ch.26", "OX Ob"],
+            icon: "heart",
+            sub: [
+              "Increased CO, SVR decrease, aortocaval compression",
+              "Physiological anaemia of pregnancy",
+              "Haemodynamic changes during labour & delivery",
+              "Postpartum haemodynamic changes"
+            ],
+            subLinks: ["","","",""]
+          }
+        ]
+      },
+      {
+        id: "respiratory-physiology",
+        name: "Respiratory Physiology",
+        topics: [
+          {
+            id: "resp-physiology",
+            name: "Respiratory Mechanics & Gas Exchange",
+            refs: ["MM Ch.19", "MIL Ch.36", "RCoA G2"],
+            icon: "lung",
+            sub: [
+              "Lung volumes & capacities: TLC, FRC, RV, VC, FEV1, FVC",
+              "Spirometry & flow-volume loops: obstructive vs restrictive patterns",
+              "Compliance: static (lung, chest wall, total), dynamic, specific",
+              "Airway resistance: Poiseuille, laminar vs turbulent flow, site of resistance",
+              "Work of breathing: elastic, resistive, inertial components",
+              "Ventilation-perfusion matching: ideal V/Q, shunt, dead space, West zones",
+              "Hypoxic pulmonary vasoconstriction: mechanism, clinical significance",
+              "Diffusion: Fick's law, DLCO, diffusion limitation vs perfusion limitation",
+              "Oxygen cascade: inspired O2 to mitochondria",
+              "Oxygen content, delivery, consumption, extraction ratio",
+              "Carbon dioxide transport: dissolved, bicarbonate, carbamino compounds",
+              "Control of breathing: central/peripheral chemoreceptors, response to CO2/O2/pH",
+              "Effects of anaesthesia on respiratory physiology: FRC, V/Q mismatch, HPV"
+            ],
+            subLinks: ["","","","","","","","","","","","",""]
+          },
+          {
+            id: "resp-pathophysiology",
+            name: "Pathophysiology of Respiratory Disease",
+            refs: ["MM Ch.19", "MIL Ch.36"],
+            icon: "activity",
+            sub: [
+              "COPD: emphysema vs chronic bronchitis, static/dynamic hyperinflation, auto-PEEP",
+              "Asthma: airway hyperreactivity, bronchospasm, gas trapping",
+              "Restrictive lung disease: interstitial fibrosis, obesity, neuromuscular, chest wall",
+              "Acute respiratory distress syndrome (ARDS): pathogenesis, Berlin definition",
+              "Obstructive sleep apnoea: pathophysiology, CV consequences",
+              "Pulmonary hypertension: WHO groups, pathophysiology"
+            ],
+            subLinks: ["","","","","",""]
+          }
+        ]
+      },
+      {
+        id: "renal-physiology",
+        name: "Renal Physiology",
+        topics: [
+          {
+            id: "renal-physiology",
+            name: "Renal Physiology & Fluid Balance",
+            refs: ["MM Ch.22", "RCoA G2"],
+            icon: "kidney",
+            sub: [
+              "Renal blood flow & autoregulation, GFR, filtration fraction",
+              "Tubular function: proximal, loop of Henle, distal, collecting duct",
+              "Solute & water handling: Na, K, HCO3, glucose, urea, concentrating/diluting",
+              "Acid-base regulation: HCO3 reabsorption, NH3 buffering, titratable acid",
+              "Renal hormones: renin, erythropoietin, vitamin D, prostaglandins",
+              "RAAS: renin-angiotensin-aldosterone axis",
+              "Fluid compartments: ECF, ICF, Starling forces, third spacing",
+              "Body fluid osmolality & tonicity: ADH, thirst, regulation",
+              "Hepatic function measurement: bilirubin, albumin, INR, ammonia, LFTs"
+            ],
+            subLinks: ["","","","","","","","",""]
+          },
+          {
+            id: "renal-pathophysiology",
+            name: "Pathophysiology of Renal Disease",
+            refs: ["MM Ch.22", "RCoA G4"],
+            icon: "activity",
+            sub: [
+              "Acute Kidney Injury: pre-renal, intrinsic, post-renal; RIFLE/AKIN/KDIGO",
+              "Chronic Kidney Disease: staging, complications (anaemia, uraemia, electrolytes)",
+              "Hepatorenal syndrome: pathophysiology, diagnosis, management"
+            ],
+            subLinks: ["","",""]
+          },
+          {
+            id: "obstetric-renal",
+            name: "Obstetric Renal Physiology",
+            refs: ["MM Ch.26"],
+            icon: "kidney",
+            sub: [
+              "Increased GFR, decreased creatinine, glycosuria",
+              "Renal effects of pre-eclampsia",
+              "Fluid balance in labour & postpartum"
+            ],
+            subLinks: ["","",""]
+          }
+        ]
+      },
+      {
+        id: "hepatic-physiology",
+        name: "Hepatic Physiology",
+        topics: [
+          {
+            id: "hepatic-physiology",
+            name: "Liver Physiology",
+            refs: ["MM Ch.22", "RCoA G2"],
+            icon: "liver",
+            sub: [
+              "Liver blood flow: hepatic artery, portal vein, autoregulation",
+              "Hepatic function: synthetic (albumin, coagulation factors), metabolic (carb, lipid, protein), storage",
+              "Bile production & enterohepatic circulation",
+              "Biotransformation: phase I (CYP450) & phase II (conjugation) reactions",
+              "Protein binding & drug distribution",
+              "Hepatic function measurement: bilirubin, albumin, INR, ammonia, indocyanine green clearance",
+              "Hepatic clearance: extraction ratio, first-pass effect, flow-limited vs capacity-limited"
+            ],
+            subLinks: ["","","","","","",""]
+          },
+          {
+            id: "hepatic-pathophysiology",
+            name: "Hepatic Pathophysiology & Failure",
+            refs: ["MM Ch.22", "RCoA G4"],
+            icon: "activity",
+            sub: [
+              "Cirrhosis: portal hypertension, varices, ascites",
+              "Hepatic encephalopathy: ammonia theory, precipitating factors",
+              "Coagulopathy in liver disease",
+              "Acute liver failure: ICP considerations, transplant listing",
+              "Child-Pugh & MELD scoring"
+            ],
+            subLinks: ["","","","",""]
+          }
+        ]
+      },
+      {
+        id: "neurophysiology",
+        name: "Neurophysiology",
+        topics: [
+          {
+            id: "neurophysiology",
+            name: "Nervous System Physiology",
+            refs: ["MM Ch.24", "RCoA G2"],
+            icon: "brain",
+            sub: [
+              "Resting membrane potential: Nernst equation, Goldman-Hodgkin-Katz",
+              "Action potential generation & propagation: Na+ & K+ channels",
+              "Synaptic transmission: neurotransmitter release, postsynaptic potentials",
+              "Sensory system: receptors, dermatomes, pathways (spinothalamic, dorsal columns)",
+              "Motor system: corticospinal tract, basal ganglia, cerebellum",
+              "Autonomic nervous system: sympathetic (thoracolumbar), parasympathetic (craniosacral)",
+              "Cerebral blood flow: autoregulation, CO2 reactivity, O2 reactivity, CMR",
+              "Cerebral perfusion pressure: CPP = MAP - ICP (or CVP)",
+              "Intracranial pressure: Monro-Kellie doctrine, pressure-volume curve",
+              "Cerebrospinal fluid: production, composition, circulation, absorption"
+            ],
+            subLinks: ["","","","","","","","","",""]
+          },
+          {
+            id: "pain-physiology",
+            name: "Pain Physiology (Nociception & Pain Pathways)",
+            refs: ["MM Ch.30", "OX Pain", "RCoA G2"],
+            icon: "triangle-alert",
+            sub: [
+              "Nociception: transduction, transmission, modulation, perception",
+              "A-delta, C fibres, A-beta — function, myelination, conduction velocity",
+              "Spinothalamic tract, spinoreticular tract, spinomesencephalic tract",
+              "Descending modulatory pathways: PAG, RVM, noradrenergic, serotonergic",
+              "Gate control theory of pain",
+              "Neuroplasticity: peripheral sensitisation, central sensitisation, wind-up",
+              "Referred pain: convergence-projection theory",
+              "Visceral vs somatic pain: characteristics, pathways"
+            ],
+            subLinks: ["","","","","","","",""]
+          }
+        ]
+      },
+      {
+        id: "endocrine-physiology",
+        name: "Endocrine Physiology",
+        topics: [
+          {
+            id: "endocrine-physiology",
+            name: "Endocrine System",
+            refs: ["MM Ch.23", "RCoA G2"],
+            icon: "gauge",
+            sub: [
+              "Hypothalamic-pituitary axis: feedback loops, hormones",
+              "Thyroid: T4, T3, calcitonin, regulation, actions",
+              "Adrenal cortex: cortisol, aldosterone, DHEA — synthesis, regulation",
+              "Adrenal medulla: catecholamines — synthesis, storage, release",
+              "Pancreatic hormones: insulin, glucagon, somatostatin",
+              "Calcium homeostasis: PTH, vitamin D, calcitonin",
+              "Stress response: neuroendocrine, metabolic, inflammatory"
+            ],
+            subLinks: ["","","","","","",""]
+          },
+          {
+            id: "obstetric-endocrine",
+            name: "Obstetric Endocrine Physiology",
+            refs: ["MM Ch.26"],
+            icon: "baby",
+            sub: [
+              "Placental hormones: hCG, hPL, progesterone, oestrogen",
+              "Endocrine changes in pregnancy: cortisol, thyroid, aldosterone",
+              "Lactation physiology: prolactin, oxytocin, milk ejection reflex"
+            ],
+            subLinks: ["","",""]
+          }
+        ]
+      },
+      {
+        id: "muscle-physiology",
+        name: "Muscle & Neuromuscular Physiology",
+        topics: [
+          {
+            id: "muscle-physiology",
+            name: "Skeletal, Cardiac & Smooth Muscle",
+            refs: ["MM Ch.11", "MIL Ch.32", "RCoA G2"],
+            icon: "dumbbell",
+            sub: [
+              "Excitation-contraction coupling: T-tubules, sarcoplasmic reticulum, Ca2+",
+              "Sliding filament theory: actin, myosin, cross-bridge cycling",
+              "Neuromuscular junction: ACh synthesis, release, receptors (nicotinic), degradation",
+              "Muscle fibre types: type I (slow), type IIa (fast oxidative), type IIb (fast glycolytic)",
+              "Motor unit recruitment: Henneman's size principle",
+              "Cardiac vs skeletal vs smooth muscle contraction",
+              "Smooth muscle: multi-unit vs single-unit, Ca2+ sensitisation, myosin light chain kinase",
+              "Muscle spindle & Golgi tendon organ: stretch reflex, autogenic inhibition"
+            ],
+            subLinks: ["","","","","","","",""]
+          },
+          {
+            id: "nmj-disorders",
+            name: "Pathophysiology of NMJ & Muscle Disorders",
+            refs: ["MM Ch.11", "MIL Ch.32"],
+            icon: "activity",
+            sub: [
+              "Myasthenia gravis: anti-AChR antibodies, Lambert-Eaton, botulism",
+              "Muscular dystrophies: Duchenne, Becker, myotonic dystrophy",
+              "Malignant hyperthermia: ryanodine receptor (RYR1) mutation, Ca2+ release",
+              "Plasma cholinesterase deficiency: genetics, dibucaine number, fluoride number"
+            ],
+            subLinks: ["","","",""]
+          }
+        ]
+      },
+      {
+        id: "immune-haem-physiology",
+        name: "Immunology & Haematology Physiology",
+        topics: [
+          {
+            id: "immunology",
+            name: "Immunology & Inflammation",
+            refs: ["MM Ch.22", "RCoA G2"],
+            icon: "shield",
+            sub: [
+              "Innate vs adaptive immunity: components, coordination",
+              "Cytokines: interleukins, TNF-alpha, interferons, chemokines",
+              "Acute phase response: CRP, procalcitonin, complement",
+              "Hypersensitivity reactions: Gell-Coombs I–IV",
+              "Anaphylaxis: IgE-mediated, non-IgE mediated, tryptase release",
+              "Transfusion reactions: acute haemolytic, delayed, allergic, febrile",
+              "Transplant immunology: HLA matching, immunosuppression, rejection"
+            ],
+            subLinks: ["","","","","","",""]
+          },
+          {
+            id: "haematology",
+            name: "Haematology & Haemostasis",
+            refs: ["MM Ch.22", "RCoA G2"],
+            icon: "droplets",
+            sub: [
+              "Erythropoiesis: EPO, iron metabolism, B12, folate",
+              "Leucocytes: types, differentiation, functions",
+              "Platelet production & function: adhesion, aggregation, secretion",
+              "Coagulation cascade: intrinsic, extrinsic, common pathway",
+              "Natural anticoagulants: antithrombin, protein C/S, TFPI",
+              "Fibrinolysis: plasminogen, tPA, PAI-1, D-dimer",
+              "Blood groups: ABO, Rh, compatibility testing"
+            ],
+            subLinks: ["","","","","","",""]
+          }
+        ]
+      },
+      {
+        id: "gi-physiology",
+        name: "Gastrointestinal Physiology",
+        topics: [
+          {
+            id: "gi-physiology",
+            name: "GI Tract Physiology",
+            refs: ["MM Ch.22", "RCoA G2"],
+            icon: "utensils-crossed",
+            sub: [
+              "Gastric function: acid secretion, motility, emptying",
+              "Hepatic function: synthetic, metabolic, storage",
+              "Pancreatic exocrine function: enzyme and bicarbonate secretion",
+              "Intestinal absorption: nutrients, fluids, electrolytes",
+              "Splanchnic circulation: autoregulation, effects of anaesthesia",
+              "Nausea & vomiting: emetic pathway, neurotransmitters, receptors",
+              "Gut microbiome: relevance to perioperative medicine"
+            ],
+            subLinks: ["","","","","","",""]
+          },
+          {
+            id: "obstetric-gi",
+            name: "Obstetric GI Physiology",
+            refs: ["MM Ch.26"],
+            icon: "baby",
+            sub: [
+              "Gastric emptying in pregnancy: delayed, increased aspiration risk",
+              "Placental nutrient transfer",
+              "Liver function changes in pregnancy"
+            ],
+            subLinks: ["","",""]
+          }
+        ]
+      },
+      {
+        id: "temperature-physiology",
+        name: "Temperature Regulation",
+        topics: [
+          {
+            id: "temp-regulation",
+            name: "Thermoregulation",
+            refs: ["MM Ch.21", "RCoA G2"],
+            icon: "thermometer",
+            sub: [
+              "Heat production: basal metabolic rate, shivering, non-shivering thermogenesis",
+              "Heat loss: radiation, conduction, convection, evaporation",
+              "Hypothalamic regulation: set-point, peripheral & central thermoreceptors",
+              "Response to cold: vasoconstriction, shivering, behavioural",
+              "Response to heat: vasodilation, sweating, behavioural",
+              "Effects of anaesthesia on thermoregulation: impaired, redistribution",
+              "Perioperative hypothermia: causes, complications (coagulopathy, SSI, cardiac events)",
+              "Malignant hyperthermia: pathophysiology, genetics (RYR1), treatment"
+            ],
+            subLinks: ["","","","","","","",""]
+          }
+        ]
+      },
+      {
+        id: "ageing-physiology",
+        name: "Physiology of Ageing",
+        topics: [
+          {
+            id: "ageing",
+            name: "Physiological Changes with Ageing",
+            refs: ["MM Ch.28", "RCoA G4"],
+            icon: "clock",
+            sub: [
+              "Cardiovascular: decreased compliance, LVH, diastolic dysfunction, reduced response to catecholamines",
+              "Respiratory: decreased FRC, chest wall compliance, gas exchange, airway reflexes",
+              "Renal: decreased GFR, drug clearance, concentrating ability",
+              "Hepatic: decreased mass, blood flow, drug metabolism",
+              "Neurological: decreased CBF, cognitive reserve, increased sensitivity to anaesthetics",
+              "Musculoskeletal: sarcopenia, osteoporosis, reduced functional capacity",
+              "Pharmacokinetic/pharmacodynamic changes: increased sensitivity, prolonged effects"
+            ],
+            subLinks: ["","","","","","",""]
+          }
+        ]
+      },
+      {
+        id: "exercise-physiology",
+        name: "Exercise Physiology & Integrated Responses",
+        topics: [
+          {
+            id: "exercise",
+            name: "Physiological Response to Exercise",
+            refs: ["RCoA G2"],
+            icon: "running",
+            sub: [
+              "Cardiovascular response: HR, SV, CO, BP, blood flow redistribution",
+              "Respiratory response: ventilation, V/Q matching, gas exchange",
+              "Metabolic response: aerobic vs anaerobic, lactate threshold, VO2 max",
+              "Oxygen debt & EPOC (Excess Post-Exercise Oxygen Consumption)",
+              "Fitness assessment: METs, Duke Activity Status Index, CPET",
+              "Preoperative CPET: AT, VE/VCO2, O2 pulse — risk stratification"
+            ],
+            subLinks: ["","","","","",""]
+          }
+        ]
+      }
+    ]
+  }
