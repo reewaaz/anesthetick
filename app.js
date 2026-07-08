@@ -558,98 +558,148 @@
 
   /* ── Planner view ────────────────────────────────────────── */
   function viewPlanner() {
-    const ov = overallProgress();
-    const pct = ov.pct;
     const inner = document.createElement('div');
     inner.className = 'inner';
+    try {
+      const ov = overallProgress();
+      const pct = ov.pct;
 
-    // Suggested topics: pick from categories with lowest progress
-    const catProgresses = CURRICULUM.map(c => ({ cat: c, pct: catProgress(c.id) }))
-      .sort((a, b) => a.pct - b.pct);
-    const suggested = [];
-    for (const cp of catProgresses) {
-      if (suggested.length >= 5) break;
-      for (const sec of cp.cat.sections) {
-        for (const t of sec.topics) {
-          const tPct = topicProgress({ ...t, catId: cp.cat.id, secId: sec.id });
-          if (tPct < 1 && suggested.length < 5 && !suggested.find(s => s.id === t.id)) {
-            suggested.push({ ...t, catId: cp.cat.id, secId: sec.id, catName: cp.cat.name, catColor: cp.cat.color, pct: tPct });
+      // Suggested topics: pick from categories with lowest progress
+      const catProgresses = CURRICULUM.map(c => ({ cat: c, pct: catProgress(c.id) }))
+        .sort((a, b) => a.pct - b.pct);
+      const suggested = [];
+      for (const cp of catProgresses) {
+        if (suggested.length >= 5) break;
+        for (const sec of cp.cat.sections) {
+          for (const t of sec.topics) {
+            const tPct = topicProgress({ ...t, catId: cp.cat.id, secId: sec.id });
+            if (tPct < 1 && suggested.length < 5 && !suggested.find(s => s.id === t.id)) {
+              suggested.push({ ...t, catId: cp.cat.id, secId: sec.id, catName: cp.cat.name, catColor: cp.cat.color, pct: tPct });
+            }
           }
         }
       }
-    }
 
-    // Weekly target calculation
-    const remaining = ov.total - ov.done;
-    const WEEKS_TIL_EXAM = 26;
-    const weeklyTarget = Math.ceil(remaining / WEEKS_TIL_EXAM);
-    const dailyTarget = Math.ceil(weeklyTarget / 5);
+      const remaining = ov.total - ov.done;
+      const WEEKS_TIL_EXAM = 26;
+      const weeklyTarget = Math.ceil(remaining / Math.max(WEEKS_TIL_EXAM, 1));
+      const dailyTarget = Math.ceil(weeklyTarget / 5);
+      const estDate = new Date();
+      estDate.setDate(estDate.getDate() + (remaining / Math.max(dailyTarget, 1)));
 
-    inner.innerHTML = html`
-      <div class="planner-card">
-        <h3>📊 Study Overview</h3>
-        <div style="display:flex;align-items:center;gap:16px;margin:8px 0">
-          <svg viewBox="0 0 100 100" style="width:80px;height:80px;flex-shrink:0">
-            <circle cx="50" cy="50" r="36" fill="none" stroke="var(--surface2)" stroke-width="8"/>
-            <circle cx="50" cy="50" r="36" fill="none" stroke="var(--accent)" stroke-width="8" stroke-dasharray="${2 * Math.PI * 36}" stroke-dashoffset="${2 * Math.PI * 36 * (1 - pct)}" transform="rotate(-90 50 50)" stroke-linecap="round"/>
-            <text x="50" y="50" text-anchor="middle" dominant-baseline="central" font-size="18" font-weight="800" fill="var(--text)">${Math.round(pct * 100)}%</text>
-          </svg>
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:600">${ov.done} / ${ov.total} items done</div>
-            <div style="font-size:12px;color:var(--muted);margin-top:4px">${remaining} remaining &middot; ${Math.round(pct * 100)}% complete</div>
+      function iconSvg(name) { return ICONS[name] || ICONS.target; }
+
+      inner.innerHTML = html`
+        <div class="planner-card">
+          <div class="p-card-header">
+            ${iconSvg('bar-chart')}
+            <span>Study Overview</span>
           </div>
-        </div>
-      </div>
-
-      <div class="planner-card">
-        <h3>🎯 Your Study Plan</h3>
-        <div class="p-grid">
-          <div class="p-stat"><div class="num">${dailyTarget}</div><div class="lbl">Daily target</div></div>
-          <div class="p-stat"><div class="num">${weeklyTarget}</div><div class="lbl">Weekly target</div></div>
-          <div class="p-stat ${remaining === 0 ? 'ok' : ''}"><div class="num">${remaining}</div><div class="lbl">Items left</div></div>
-          <div class="p-stat"><div class="num">${WEEKS_TIL_EXAM}</div><div class="lbl">Weeks til exam</div></div>
-        </div>
-        <div class="p-row"><span class="lbl">Pace</span><span class="val">${dailyTarget} items/day (${weeklyTarget}/week) to finish in ${WEEKS_TIL_EXAM} weeks</span></div>
-        <div class="p-row"><span class="lbl">Focus areas</span><span class="val warn">${catProgresses[0].cat.name}</span></div>
-      </div>
-
-      <div class="planner-card">
-        <h3>📚 Suggested Topics Today</h3>
-        ${suggested.length ? suggested.map(s => html`
-          <div class="planner-suggest" data-topic-id="${s.id}">
-            <div class="sg-ic" style="background:${s.catColor}22;color:${s.catColor}">${ICONS[s.catColor === '#0ea5e9' ? 'atom' : s.icon] || ICONS.target}</div>
-            <div>
-              <div class="sg-name">${s.name}</div>
-              <div class="sg-cat">${s.catName}</div>
+          <div class="p-overview">
+            <div class="p-ring-wrap">
+              <svg viewBox="0 0 100 100" class="p-ring">
+                <circle cx="50" cy="50" r="40" fill="none" stroke="var(--surface2)" stroke-width="8"/>
+                <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent)" stroke-width="8" stroke-dasharray="${2 * Math.PI * 40}" stroke-dashoffset="${2 * Math.PI * 40 * (1 - pct)}" transform="rotate(-90 50 50)" stroke-linecap="round"/>
+                <text x="50" y="48" text-anchor="middle" dominant-baseline="central" font-size="22" font-weight="800" fill="var(--text)">${Math.round(pct * 100)}%</text>
+                <text x="50" y="64" text-anchor="middle" font-size="9" fill="var(--muted)">done</text>
+              </svg>
             </div>
-            <span class="sg-pct">${Math.round(s.pct * 100)}%</span>
+            <div class="p-overview-stats">
+              <div class="p-ov-row"><span class="lbl">Completed</span><span class="val">${ov.done}</span></div>
+              <div class="p-ov-row"><span class="lbl">Remaining</span><span class="val warn">${remaining}</span></div>
+              <div class="p-ov-row"><span class="lbl">Total items</span><span class="val">${ov.total}</span></div>
+              <div class="p-ov-row"><span class="lbl">Est. finish</span><span class="val">${estDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span></div>
+            </div>
           </div>
-        `).join('') : '<div style="padding:12px;color:var(--muted);font-size:13px">All caught up! 🎉</div>'}
-      </div>
+        </div>
 
-      <div class="planner-card">
-        <h3>📈 Progress by Category</h3>
-        ${CURRICULUM.map(cat => {
-          const p = catProgress(cat.id);
-          return html`
-            <div class="cat-prog">
-              <div class="cp-head">
-                <span class="nm">${cat.name}</span><span class="pct">${Math.round(p * 100)}%</span>
+        <div class="planner-card">
+          <div class="p-card-header">
+            ${iconSvg('target')}
+            <span>Study Plan</span>
+          </div>
+          <div class="p-grid">
+            <div class="p-stat"><div class="num">${dailyTarget}</div><div class="lbl">Daily<br>target</div></div>
+            <div class="p-stat"><div class="num">${weeklyTarget}</div><div class="lbl">Weekly<br>target</div></div>
+            <div class="p-stat ${remaining === 0 ? 'ok' : ''}"><div class="num">${remaining}</div><div class="lbl">Items<br>left</div></div>
+            <div class="p-stat"><div class="num">${WEEKS_TIL_EXAM}</div><div class="lbl">Weeks<br>til exam</div></div>
+          </div>
+          <div class="p-pace">
+            <span>${iconSvg('running')}</span>
+            <span>Study <strong>${dailyTarget} items/day</strong> (${weeklyTarget}/week) to finish by <strong>${estDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</strong></span>
+          </div>
+          ${catProgresses[0] ? html`
+            <div class="p-pace">
+              <span>${iconSvg('flask')}</span>
+              <span>Focus on <strong>${catProgresses[0].cat.name}</strong> (${Math.round(catProgresses[0].pct * 100)}% done)</span>
+            </div>
+          ` : ''}
+        </div>
+
+        <div class="planner-card">
+          <div class="p-card-header">
+            ${iconSvg('bookmark')}
+            <span>Suggested Topics Today</span>
+          </div>
+          ${suggested.length ? html`
+            ${suggested.map(s => html`
+              <div class="planner-suggest" data-topic-id="${s.id}">
+                <div class="sg-ic" style="background:${s.catColor}22;color:${s.catColor}">${ICONS.flask}</div>
+                <div>
+                  <div class="sg-name">${s.name}</div>
+                  <div class="sg-cat">${s.catName}</div>
+                </div>
+                <span class="sg-pct">${Math.round(s.pct * 100)}%</span>
               </div>
-              <div class="cp-bar"><i style="width:${p * 100}%;background:${cat.color}"></i></div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    `;
+            `).join('')}
+          ` : '<div class="p-empty">All caught up! Every topic completed.</div>'}
+        </div>
 
-    // Delegate click on suggested topics
-    requestAnimationFrame(() => {
-      inner.querySelectorAll('.planner-suggest').forEach(el => {
-        el.addEventListener('click', () => navigate('topic', el.dataset.topicId));
+        <div class="planner-card">
+          <div class="p-card-header">
+            ${iconSvg('activity')}
+            <span>Progress by Category</span>
+          </div>
+          ${CURRICULUM.map(cat => {
+            const p = catProgress(cat.id);
+            return html`
+              <div class="cat-prog">
+                <div class="cp-head">
+                  <span class="nm">${cat.name}</span><span class="pct">${Math.round(p * 100)}%</span>
+                </div>
+                <div class="cp-bar"><i style="width:${p * 100}%;background:${cat.color}"></i></div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <div class="planner-card">
+          <div class="p-card-header">
+            ${iconSvg('clipboard')}
+            <span>Quick Stats</span>
+          </div>
+          <div class="p-grid">
+            <div class="p-stat"><div class="num">${CURRICULUM.length}</div><div class="lbl">Categories</div></div>
+            <div class="p-stat"><div class="num">${ALL_TOPICS.length}</div><div class="lbl">Topics</div></div>
+            <div class="p-stat"><div class="num">${ov.total}</div><div class="lbl">Subtopics</div></div>
+            <div class="p-stat ${pct === 1 ? 'ok' : ''}"><div class="num">${Math.round(pct * 100)}%</div><div class="lbl">Complete</div></div>
+          </div>
+          <div class="p-footnote">Complete all subtopics in a topic to mark it done. Check off items as you study.</div>
+        </div>
+      `;
+
+      requestAnimationFrame(() => {
+        inner.querySelectorAll('.planner-suggest').forEach(el => {
+          el.addEventListener('click', () => navigate('topic', el.dataset.topicId));
+          el.addEventListener('touchstart', e => {
+            e.preventDefault();
+            navigate('topic', el.dataset.topicId);
+          }, { passive: false });
+        });
       });
-    });
-
+    } catch (e) {
+      inner.innerHTML = '<div class="empty"><p>Could not load planner.</p><p style="font-size:12px;margin-top:8px">' + e.message + '</p></div>';
+    }
     return inner;
   }
 
@@ -1144,11 +1194,28 @@
     return await res.json();
   }
 
+  async function ensureRepo() {
+    const auth = getGithubAuth();
+    // Check if repo exists
+    const check = await fetch(GITHUB_API + '/repos/' + state.githubUser + '/anesthetick', {
+      headers: { Authorization: 'Basic ' + auth }
+    });
+    if (check.ok) return; // repo exists
+    // Create it
+    const res = await fetch(GITHUB_API + '/user/repos', {
+      method: 'POST',
+      headers: { Authorization: 'Basic ' + auth, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: 'anesthetick', description: 'Anesthetick study data sync', private: false, auto_init: true })
+    });
+    if (!res.ok && res.status !== 422) throw new Error('Failed to create repo: ' + res.status);
+  }
+
   async function cloudRegister(user, pass) {
     const login = await testCloudConnection(user, pass);
     state.githubUser = user;
     state.githubPin = pass;
     saveState();
+    await ensureRepo();
     // Create initial data file
     const data = {
       progress: state.progress,
@@ -1167,14 +1234,18 @@
     state.githubUser = user;
     state.githubPin = pass;
     saveState();
-    // Load remote data
-    const data = await syncFromGithub();
-    if (data.progress) state.progress = data.progress;
-    if (data.bookmarks) state.bookmarks = data.bookmarks;
-    if (data.subBookmarks) state.subBookmarks = data.subBookmarks;
-    if (data.customSubs) state.customSubs = data.customSubs;
-    if (data.topicNotes) state.topicNotes = data.topicNotes;
-    saveState();
+    // Load remote data (if fails, just continue with local)
+    try {
+      const data = await syncFromGithub();
+      if (data.progress) state.progress = data.progress;
+      if (data.bookmarks) state.bookmarks = data.bookmarks;
+      if (data.subBookmarks) state.subBookmarks = data.subBookmarks;
+      if (data.customSubs) state.customSubs = data.customSubs;
+      if (data.topicNotes) state.topicNotes = data.topicNotes;
+      saveState();
+    } catch (_) {
+      // No remote data yet — start fresh
+    }
     toast('Welcome back ' + login);
     navigate('home');
   }
@@ -1286,10 +1357,18 @@
     sfxNav();
     navigate('planner');
   });
+  // Mobile touch support
+  $('#plannerBtn').addEventListener('touchstart', e => {
+    e.preventDefault(); // prevent click delay
+    sfxNav();
+    navigate('planner');
+  }, { passive: false });
 
   function updatePlannerPct() {
+    const el = $('#plannerPct');
+    if (!el) return;
     const ov = overallProgress();
-    $('#plannerPct').textContent = Math.round(ov.pct * 100) + '%';
+    el.textContent = Math.round(ov.pct * 100) + '%';
   }
   updatePlannerPct();
 
