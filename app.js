@@ -22,11 +22,12 @@
         if (!parsed.topicNotes) parsed.topicNotes = {};
         if (!parsed.githubUser) parsed.githubUser = '';
         if (!parsed.githubPin) parsed.githubPin = '';
+        if (!parsed.pomodoro) parsed.pomodoro = { sessions: 0, date: '', focusMin: 25, breakMin: 5 };
         return parsed;
       }
     } catch (_) {}
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    return { progress: {}, bookmarks: [], subBookmarks: [], customSubs: {}, topicNotes: {}, githubUser: '', githubPin: '', installDismissed: false, theme: prefersDark ? 'dark' : 'light' };
+    return { progress: {}, bookmarks: [], subBookmarks: [], customSubs: {}, topicNotes: {}, githubUser: '', githubPin: '', installDismissed: false, theme: prefersDark ? 'dark' : 'light', pomodoro: { sessions: 0, date: '', focusMin: 25, breakMin: 5 } };
   }
 
   function saveState() {
@@ -564,7 +565,6 @@
       const ov = overallProgress();
       const pct = ov.pct;
 
-      // Suggested topics: pick from categories with lowest progress
       const catProgresses = CURRICULUM.map(c => ({ cat: c, pct: catProgress(c.id) }))
         .sort((a, b) => a.pct - b.pct);
       const suggested = [];
@@ -587,120 +587,217 @@
       const estDate = new Date();
       estDate.setDate(estDate.getDate() + (remaining / Math.max(dailyTarget, 1)));
 
-      function iconSvg(name) { return ICONS[name] || ICONS.target; }
+      // Pomodoro state
+      if (!state.pomodoro) {
+        state.pomodoro = { sessions: 0, date: '', focusMin: 25, breakMin: 5 };
+      }
+      const today = new Date().toDateString();
+      if (state.pomodoro.date !== today) {
+        state.pomodoro.sessions = 0;
+        state.pomodoro.date = today;
+      }
 
       inner.innerHTML = html`
-        <div class="planner-card">
-          <div class="p-card-header">
-            ${iconSvg('bar-chart')}
-            <span>Study Overview</span>
-          </div>
-          <div class="p-overview">
-            <div class="p-ring-wrap">
-              <svg viewBox="0 0 100 100" class="p-ring">
-                <circle cx="50" cy="50" r="40" fill="none" stroke="var(--surface2)" stroke-width="8"/>
-                <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent)" stroke-width="8" stroke-dasharray="${2 * Math.PI * 40}" stroke-dashoffset="${2 * Math.PI * 40 * (1 - pct)}" transform="rotate(-90 50 50)" stroke-linecap="round"/>
-                <text x="50" y="48" text-anchor="middle" dominant-baseline="central" font-size="22" font-weight="800" fill="var(--text)">${Math.round(pct * 100)}%</text>
-                <text x="50" y="64" text-anchor="middle" font-size="9" fill="var(--muted)">done</text>
-              </svg>
-            </div>
-            <div class="p-overview-stats">
-              <div class="p-ov-row"><span class="lbl">Completed</span><span class="val">${ov.done}</span></div>
-              <div class="p-ov-row"><span class="lbl">Remaining</span><span class="val warn">${remaining}</span></div>
-              <div class="p-ov-row"><span class="lbl">Total items</span><span class="val">${ov.total}</span></div>
-              <div class="p-ov-row"><span class="lbl">Est. finish</span><span class="val">${estDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span></div>
+        <div class="pl-card">
+          <div class="pl-ring-section">
+            <svg viewBox="0 0 100 100" class="pl-ring">
+              <circle cx="50" cy="50" r="40" fill="none" stroke="var(--surface2)" stroke-width="7"/>
+              <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent)" stroke-width="7" stroke-dasharray="${2 * Math.PI * 40}" stroke-dashoffset="${2 * Math.PI * 40 * (1 - pct)}" transform="rotate(-90 50 50)" stroke-linecap="round"/>
+              <text x="50" y="46" text-anchor="middle" dominant-baseline="central" font-size="20" font-weight="800" fill="var(--text)">${Math.round(pct * 100)}%</text>
+              <text x="50" y="64" text-anchor="middle" font-size="9" fill="var(--muted)">complete</text>
+            </svg>
+            <div class="pl-ring-stats">
+              <div class="pl-sRow"><span>Completed</span><strong>${ov.done}</strong></div>
+              <div class="pl-sRow"><span>Remaining</span><strong style="color:var(--warn)">${remaining}</strong></div>
+              <div class="pl-sRow"><span>Finish by</span><strong>${estDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</strong></div>
             </div>
           </div>
         </div>
 
-        <div class="planner-card">
-          <div class="p-card-header">
-            ${iconSvg('target')}
-            <span>Study Plan</span>
+        <div class="pl-card">
+          <div class="pl-section-title">Study Plan</div>
+          <div class="pl-plan-grid">
+            <div class="pl-plan-item"><span class="pl-num">${dailyTarget}</span><span class="pl-lbl">Daily</span></div>
+            <div class="pl-plan-item"><span class="pl-num">${weeklyTarget}</span><span class="pl-lbl">Weekly</span></div>
+            <div class="pl-plan-item"><span class="pl-num">${remaining}</span><span class="pl-lbl">Left</span></div>
+            <div class="pl-plan-item"><span class="pl-num">${WEEKS_TIL_EXAM}</span><span class="pl-lbl">Weeks</span></div>
           </div>
-          <div class="p-grid">
-            <div class="p-stat"><div class="num">${dailyTarget}</div><div class="lbl">Daily<br>target</div></div>
-            <div class="p-stat"><div class="num">${weeklyTarget}</div><div class="lbl">Weekly<br>target</div></div>
-            <div class="p-stat ${remaining === 0 ? 'ok' : ''}"><div class="num">${remaining}</div><div class="lbl">Items<br>left</div></div>
-            <div class="p-stat"><div class="num">${WEEKS_TIL_EXAM}</div><div class="lbl">Weeks<br>til exam</div></div>
-          </div>
-          <div class="p-pace">
-            <span>${iconSvg('running')}</span>
-            <span>Study <strong>${dailyTarget} items/day</strong> (${weeklyTarget}/week) to finish by <strong>${estDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</strong></span>
-          </div>
-          ${catProgresses[0] ? html`
-            <div class="p-pace">
-              <span>${iconSvg('flask')}</span>
-              <span>Focus on <strong>${catProgresses[0].cat.name}</strong> (${Math.round(catProgresses[0].pct * 100)}% done)</span>
-            </div>
-          ` : ''}
+          <div class="pl-focus">Focus: <strong>${catProgresses[0]?.cat?.name || '—'}</strong> (${catProgresses[0] ? Math.round(catProgresses[0].pct * 100) + '%' : '0%'} done)</div>
         </div>
 
-        <div class="planner-card">
-          <div class="p-card-header">
-            ${iconSvg('bookmark')}
-            <span>Suggested Topics Today</span>
+        <div class="pl-card">
+          <div class="pl-section-title">Pomodoro Timer</div>
+          <div class="pl-timer">
+            <div class="pl-timer-display" id="plTimerDisplay">${formatTime(state.pomodoro.focusMin * 60)}</div>
+            <div class="pl-timer-mode" id="plTimerMode">Focus</div>
+            <div class="pl-timer-controls">
+              <button class="pl-timer-btn primary" id="plTimerStart">Start</button>
+              <button class="pl-timer-btn" id="plTimerReset">Reset</button>
+            </div>
+            <div class="pl-timer-sessions">Today: <strong>${state.pomodoro.sessions}</strong> sessions</div>
+            <div class="pl-timer-presets">
+              <button class="pl-preset active" data-min="25">25m</button>
+              <button class="pl-preset" data-min="15">15m</button>
+              <button class="pl-preset" data-min="45">45m</button>
+              <button class="pl-preset" data-min="5">5m</button>
+            </div>
           </div>
+        </div>
+
+        <div class="pl-card">
+          <div class="pl-section-title">Suggested Topics</div>
           ${suggested.length ? html`
             ${suggested.map(s => html`
-              <div class="planner-suggest" data-topic-id="${s.id}">
-                <div class="sg-ic" style="background:${s.catColor}22;color:${s.catColor}">${ICONS.flask}</div>
-                <div>
-                  <div class="sg-name">${s.name}</div>
-                  <div class="sg-cat">${s.catName}</div>
+              <div class="pl-suggest" data-topic-id="${s.id}">
+                <div class="pl-sg-dot" style="background:${s.catColor}"></div>
+                <div class="pl-sg-body">
+                  <div class="pl-sg-name">${s.name}</div>
+                  <div class="pl-sg-cat">${s.catName}</div>
                 </div>
-                <span class="sg-pct">${Math.round(s.pct * 100)}%</span>
+                <span class="pl-sg-pct">${Math.round(s.pct * 100)}%</span>
               </div>
             `).join('')}
-          ` : '<div class="p-empty">All caught up! Every topic completed.</div>'}
+          ` : '<div class="pl-empty">All topics completed!</div>'}
         </div>
 
-        <div class="planner-card">
-          <div class="p-card-header">
-            ${iconSvg('activity')}
-            <span>Progress by Category</span>
-          </div>
+        <div class="pl-card">
+          <div class="pl-section-title">Progress by Category</div>
           ${CURRICULUM.map(cat => {
             const p = catProgress(cat.id);
             return html`
-              <div class="cat-prog">
-                <div class="cp-head">
-                  <span class="nm">${cat.name}</span><span class="pct">${Math.round(p * 100)}%</span>
+              <div class="pl-cat-row">
+                <div class="pl-cat-head">
+                  <span class="pl-cat-name">${cat.name}</span>
+                  <span class="pl-cat-pct">${Math.round(p * 100)}%</span>
                 </div>
-                <div class="cp-bar"><i style="width:${p * 100}%;background:${cat.color}"></i></div>
+                <div class="pl-cat-bar"><i style="width:${p * 100}%;background:${cat.color}"></i></div>
               </div>
             `;
           }).join('')}
         </div>
 
-        <div class="planner-card">
-          <div class="p-card-header">
-            ${iconSvg('clipboard')}
-            <span>Quick Stats</span>
+        <div class="pl-card">
+          <div class="pl-section-title">Stats</div>
+          <div class="pl-plan-grid">
+            <div class="pl-plan-item"><span class="pl-num">${CURRICULUM.length}</span><span class="pl-lbl">Categories</span></div>
+            <div class="pl-plan-item"><span class="pl-num">${ALL_TOPICS.length}</span><span class="pl-lbl">Topics</span></div>
+            <div class="pl-plan-item"><span class="pl-num">${ov.total}</span><span class="pl-lbl">Subtopics</span></div>
+            <div class="pl-plan-item"><span class="pl-num">${Math.round(pct * 100)}%</span><span class="pl-lbl">Complete</span></div>
           </div>
-          <div class="p-grid">
-            <div class="p-stat"><div class="num">${CURRICULUM.length}</div><div class="lbl">Categories</div></div>
-            <div class="p-stat"><div class="num">${ALL_TOPICS.length}</div><div class="lbl">Topics</div></div>
-            <div class="p-stat"><div class="num">${ov.total}</div><div class="lbl">Subtopics</div></div>
-            <div class="p-stat ${pct === 1 ? 'ok' : ''}"><div class="num">${Math.round(pct * 100)}%</div><div class="lbl">Complete</div></div>
-          </div>
-          <div class="p-footnote">Complete all subtopics in a topic to mark it done. Check off items as you study.</div>
         </div>
       `;
 
+      // Wire up pomodoro timer
+      requestAnimationFrame(() => wirePomodoro(inner));
+
+      // Wire up suggested topics
       requestAnimationFrame(() => {
-        inner.querySelectorAll('.planner-suggest').forEach(el => {
+        inner.querySelectorAll('.pl-suggest').forEach(el => {
           el.addEventListener('click', () => navigate('topic', el.dataset.topicId));
-          el.addEventListener('touchstart', e => {
-            e.preventDefault();
-            navigate('topic', el.dataset.topicId);
-          }, { passive: false });
+        });
+        // Preset buttons
+        inner.querySelectorAll('.pl-preset').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+            timerRunning = false;
+            const min = parseInt(btn.dataset.min);
+            timerSeconds = min * 60;
+            timerMode = min <= 10 ? 'Break' : 'Focus';
+            inner.querySelectorAll('.pl-preset').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            updateTimerDisplay(inner);
+          });
         });
       });
     } catch (e) {
-      inner.innerHTML = '<div class="empty"><p>Could not load planner.</p><p style="font-size:12px;margin-top:8px">' + e.message + '</p></div>';
+      inner.innerHTML = '<div class="empty"><p>Could not load planner.</p></div>';
     }
     return inner;
+  }
+
+  // Timer globals
+  let timerSeconds = 25 * 60;
+  let timerRunning = false;
+  let timerMode = 'Focus';
+  let timerInterval = null;
+
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+
+  function wirePomodoro(container) {
+    const display = container.querySelector('#plTimerDisplay');
+    const modeEl = container.querySelector('#plTimerMode');
+    const startBtn = container.querySelector('#plTimerStart');
+    const resetBtn = container.querySelector('#plTimerReset');
+
+    if (!display || !startBtn) return;
+
+    const updateView = () => {
+      display.textContent = formatTime(timerSeconds);
+      modeEl.textContent = timerMode;
+      startBtn.textContent = timerRunning ? 'Pause' : (timerSeconds > 0 ? 'Start' : 'Restart');
+    };
+
+    startBtn.onclick = () => {
+      if (timerRunning) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+        timerRunning = false;
+        updateView();
+        return;
+      }
+      if (timerSeconds <= 0) {
+        timerSeconds = (timerMode === 'Break' ? state.pomodoro.breakMin : state.pomodoro.focusMin) * 60;
+      }
+      timerRunning = true;
+      updateView();
+      timerInterval = setInterval(() => {
+        timerSeconds--;
+        updateView();
+        if (timerSeconds <= 0) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+          timerRunning = false;
+          // Session complete
+          if (timerMode === 'Focus') {
+            state.pomodoro.sessions++;
+            saveState();
+            timerMode = 'Break';
+            timerSeconds = state.pomodoro.breakMin * 60;
+            sfxCelebrate();
+          } else {
+            timerMode = 'Focus';
+            timerSeconds = state.pomodoro.focusMin * 60;
+          }
+          updateView();
+          container.querySelectorAll('.pl-preset').forEach(b => b.classList.remove('active'));
+        }
+      }, 1000);
+    };
+
+    resetBtn.onclick = () => {
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+      timerRunning = false;
+      timerMode = 'Focus';
+      timerSeconds = state.pomodoro.focusMin * 60;
+      container.querySelectorAll('.pl-preset').forEach(b => b.classList.remove('active'));
+      container.querySelector('.pl-preset[data-min="25"]')?.classList.add('active');
+      updateView();
+    };
+
+    updateView();
+  }
+
+  function updateTimerDisplay(container) {
+    const display = container.querySelector('#plTimerDisplay');
+    const modeEl = container.querySelector('#plTimerMode');
+    const startBtn = container.querySelector('#plTimerStart');
+    if (display) display.textContent = formatTime(timerSeconds);
+    if (modeEl) modeEl.textContent = timerMode;
+    if (startBtn) startBtn.textContent = timerRunning ? 'Pause' : (timerSeconds > 0 ? 'Start' : 'Restart');
   }
 
   function viewBookmarks() {
@@ -869,6 +966,13 @@
               <div class="desc">Upload current data to cloud</div>
             </div>
             <button class="btn-ghost" data-action="cloud-sync" style="font-size:12px">${ICONS.upload} Save</button>
+          </div>
+          <div class="set-row" style="border-color:transparent">
+            <div class="set-info">
+              <div class="lbl">Check Connection</div>
+              <div class="desc">Test repo access and permissions</div>
+            </div>
+            <button class="btn-ghost" data-action="cloud-check" style="font-size:12px">${ICONS.radio} Test</button>
           </div>
           <div class="set-row" style="border-color:transparent">
             <div class="set-info">
@@ -1165,33 +1269,26 @@
     return (await res.json()).login;
   }
 
-  async function syncToGithub(data) {
-    if (!isCloudConnected()) throw new Error('Not connected');
-    const url = GITHUB_API + '/repos/' + state.githubUser + '/anesthetick/contents/' + GITHUB_DATA_PATH;
+  async function getRepoContent(path) {
     const auth = getGithubAuth();
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
-    let sha = null;
-    try {
-      const existing = await fetch(url, { headers: { Authorization: 'Basic ' + auth } });
-      if (existing.ok) { const ex = await existing.json(); sha = ex.sha; }
-    } catch (_) {}
-    const body = { message: 'sync anesthetick data', content };
+    const url = GITHUB_API + '/repos/' + state.githubUser + '/anesthetick/contents/' + path;
+    const res = await fetch(url, { headers: { Authorization: 'Basic ' + auth } });
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json;
+  }
+
+  async function putRepoContent(path, content, sha) {
+    const auth = getGithubAuth();
+    const url = GITHUB_API + '/repos/' + state.githubUser + '/anesthetick/contents/' + path;
+    const body = { message: 'sync anesthetick data', content: btoa(unescape(encodeURIComponent(JSON.stringify(content)))) };
     if (sha) body.sha = sha;
     const res = await fetch(url, {
       method: 'PUT',
       headers: { Authorization: 'Basic ' + auth, 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
     });
-    if (!res.ok) throw new Error('Sync failed: ' + res.status);
-    return true;
-  }
-
-  async function syncFromGithub() {
-    if (!isCloudConnected()) throw new Error('Not connected');
-    const url = 'https://raw.githubusercontent.com/' + state.githubUser + '/anesthetick/main/' + GITHUB_DATA_PATH;
-    const res = await fetch(url);
-    if (!res.ok) throw new Error('Load failed: ' + res.status);
-    return await res.json();
+    return res;
   }
 
   async function ensureRepo() {
@@ -1200,14 +1297,42 @@
     const check = await fetch(GITHUB_API + '/repos/' + state.githubUser + '/anesthetick', {
       headers: { Authorization: 'Basic ' + auth }
     });
-    if (check.ok) return; // repo exists
-    // Create it
+    if (check.ok) return;
+    // Create repo
     const res = await fetch(GITHUB_API + '/user/repos', {
       method: 'POST',
       headers: { Authorization: 'Basic ' + auth, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'anesthetick', description: 'Anesthetick study data sync', private: false, auto_init: true })
+      body: JSON.stringify({ name: 'anesthetick', description: 'Anesthetick study sync', private: false, auto_init: true })
     });
-    if (!res.ok && res.status !== 422) throw new Error('Failed to create repo: ' + res.status);
+    if (res.status === 422) return; // already exists
+    if (!res.ok) {
+      const msg = await res.json().catch(() => ({}));
+      throw new Error('Cannot create repo. Create a repo called "anesthetick" on GitHub, or ensure your PAT has the "repo" scope. (' + (msg.message || res.status) + ')');
+    }
+    // Wait for repo to be ready
+    await new Promise(r => setTimeout(r, 2000));
+  }
+
+  async function syncToGithub(data) {
+    if (!isCloudConnected()) throw new Error('Not connected');
+    await ensureRepo();
+    const existing = await getRepoContent(GITHUB_DATA_PATH);
+    const sha = existing ? existing.sha : null;
+    const res = await putRepoContent(GITHUB_DATA_PATH, data, sha);
+    if (res.status === 404) throw new Error('Repo "anesthetick" not found. Create it on GitHub and try again.');
+    if (!res.ok) {
+      const msg = await res.json().catch(() => ({}));
+      throw new Error('Save failed: ' + (msg.message || res.status));
+    }
+    return true;
+  }
+
+  async function syncFromGithub() {
+    if (!isCloudConnected()) throw new Error('Not connected');
+    const existing = await getRepoContent(GITHUB_DATA_PATH);
+    if (!existing) throw new Error('No data found on cloud');
+    const content = decodeURIComponent(escape(atob(existing.content)));
+    return JSON.parse(content);
   }
 
   async function cloudRegister(user, pass) {
@@ -1637,6 +1762,19 @@
           topicNotes: state.topicNotes
         };
         syncToGithub(data).then(() => toast('Saved to cloud')).catch(err => toast('Save failed: ' + err.message));
+        return;
+      }
+      if (action === 'cloud-check') {
+        toast('Checking…');
+        (async () => {
+          try {
+            const login = await testCloudConnection(state.githubUser, state.githubPin);
+            await ensureRepo();
+            toast('Connected as ' + login + ' — repo ready');
+          } catch (err) {
+            toast('Connection issue: ' + err.message);
+          }
+        })();
         return;
       }
 
