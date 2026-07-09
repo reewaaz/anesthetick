@@ -2469,6 +2469,13 @@ main::-webkit-scrollbar-thumb {
   background: var(--ok);
   box-shadow: 0 0 6px var(--ok);
 }
+.sync-status {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.sync-status:empty { display: none; }
 .auth-form {
   display: flex;
   flex-direction: column;

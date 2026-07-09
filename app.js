@@ -1069,6 +1069,13 @@
           </div>
           <div class="set-row" style="border-color:transparent">
             <div class="set-info">
+              <div class="lbl">Auto-save</div>
+              <div class="desc">Saves to cloud after every change</div>
+            </div>
+            <span class="sync-status" id="syncStatus">${syncStatusLabel()}</span>
+          </div>
+          <div class="set-row" style="border-color:transparent">
+            <div class="set-info">
               <div class="lbl">Sync Now</div>
               <div class="desc">Upload current data to cloud</div>
             </div>
@@ -1413,6 +1420,21 @@
     return !!(state.githubUser && state.githubPin);
   }
 
+  let syncState = 'idle'; // idle | syncing | ok | error
+  let syncStateMsg = '';
+  function syncStatusLabel() {
+    if (syncState === 'syncing') return '⟳ Saving…';
+    if (syncState === 'ok') return '✓ Saved';
+    if (syncState === 'error') return '⚠ ' + (syncStateMsg || 'Sync failed');
+    return isCloudConnected() ? 'Auto' : 'Off';
+  }
+  function setSyncStatus(state_, msg) {
+    syncState = state_;
+    syncStateMsg = msg || '';
+    const el = document.getElementById('syncStatus');
+    if (el) el.textContent = syncStatusLabel();
+  }
+
   function githubOwner() {
     // Always use the authenticated login (case-insensitive in URLs, avoids 404 on case mismatch)
     return state.githubLogin || state.githubUser;
@@ -1575,18 +1597,27 @@
   // Auto-sync when data changes (debounced)
   let autoSyncTimer;
   let lastAutoSyncError = 0;
+  let lastAutoSyncOk = 0;
   function triggerAutoSync() {
     if (!isCloudConnected()) return;
     clearTimeout(autoSyncTimer);
+    setSyncStatus('syncing');
     autoSyncTimer = setTimeout(() => {
-      syncToGithub(cloudPayload()).then(() => { lastAutoSyncError = 0; }).catch(err => {
-        const now = Date.now();
-        if (now - lastAutoSyncError > 60000) {
-          toast('Auto-sync failed: ' + err.message);
-          lastAutoSyncError = now;
-        }
-      });
-    }, 5000);
+      syncToGithub(cloudPayload())
+        .then(() => {
+          lastAutoSyncError = 0;
+          lastAutoSyncOk = Date.now();
+          setSyncStatus('ok');
+        })
+        .catch(err => {
+          const now = Date.now();
+          setSyncStatus('error', err.message);
+          if (now - lastAutoSyncError > 60000) {
+            toast('Auto-sync failed: ' + err.message);
+            lastAutoSyncError = now;
+          }
+        });
+    }, 2500);
   }
 
   // Auto-login on start
