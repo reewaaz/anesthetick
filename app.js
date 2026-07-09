@@ -1454,8 +1454,13 @@
   async function testCloudConnection(user, pass) {
     const auth = btoa(user + ':' + pass);
     const res = await fetch(GITHUB_API + '/user', { headers: { Authorization: 'Basic ' + auth } });
-    if (!res.ok) throw new Error('Invalid credentials (' + res.status + ')');
-    const json = await res.json();
+    if (!res.ok) {
+      const t = await res.text().catch(() => '');
+      if (/<!DOCTYPE/i.test(t)) throw new Error('GitHub is unreachable right now (rate limit or outage). Try again shortly.');
+      throw new Error('Invalid credentials (' + res.status + ')');
+    }
+    const json = await res.json().catch(() => null);
+    if (!json || !json.login) throw new Error('Could not read GitHub account (unexpected response).');
     return json.login;
   }
 
@@ -1469,8 +1474,12 @@
       cache: 'no-store'
     });
     if (res.status === 404) return null;
-    if (!res.ok) throw new Error('Cloud read error (' + res.status + ')');
-    return await res.json();
+    if (!res.ok) {
+      const t = await res.text().catch(() => '');
+      if (/<!DOCTYPE/i.test(t)) throw new Error('GitHub is unreachable right now (rate limit or outage). Try again shortly.');
+      throw new Error('Cloud read error (' + res.status + ')');
+    }
+    return await res.json().catch(() => null);
   }
 
   function safeStringify(v) {
@@ -1566,6 +1575,13 @@
         const t = await res.text();
         try { msg = (JSON.parse(t).message) || t.slice(0, 120); } catch (_) { msg = t.slice(0, 120); }
       } catch (_) {}
+      // Transient GitHub errors (5xx, rate limit, outage HTML) — retry
+      const transient = res.status === 0 || res.status >= 500 || /rate limit/i.test(msg) || /<!DOCTYPE/i.test(msg);
+      if (transient && attempt < 7) {
+        lastErr = new Error('GitHub busy — retrying… (' + (attempt + 1) + ')');
+        await new Promise(r => setTimeout(r, 1000 * Math.pow(1.6, attempt)));
+        continue;
+      }
       // 409/422 "sha does not match" / conflict — file changed remotely (or GET was cached); re-read fresh sha and retry
       const conflict = res.status === 409 || res.status === 422 || /does not match/i.test(msg) || /branch was modified/i.test(msg);
       if (conflict && attempt < 7) {
