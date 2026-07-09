@@ -22,6 +22,7 @@
         if (!parsed.topicNotes) parsed.topicNotes = {};
         if (!parsed.githubUser) parsed.githubUser = '';
         if (!parsed.githubPin) parsed.githubPin = '';
+        if (!parsed.githubLogin) parsed.githubLogin = '';
         if (!parsed.pomodoro) parsed.pomodoro = { sessions: 0, total: 0, date: '', focusMin: 25, breakMin: 5, endTs: 0, mode: 'Focus', running: false };
         if (typeof parsed.pomodoro.total !== 'number') parsed.pomodoro.total = 0;
         if (typeof parsed.pomodoro.endTs !== 'number') parsed.pomodoro.endTs = 0;
@@ -33,7 +34,7 @@
       }
     } catch (_) {}
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    return { progress: {}, bookmarks: [], subBookmarks: [], customSubs: {}, topicNotes: {}, githubUser: '', githubPin: '', installDismissed: false, theme: prefersDark ? 'dark' : 'light', pomodoro: { sessions: 0, total: 0, date: '', focusMin: 25, breakMin: 5, endTs: 0, mode: 'Focus', running: false }, examDate: '', planWeeksAhead: 26, studyDays: 5 };
+    return { progress: {}, bookmarks: [], subBookmarks: [], customSubs: {}, topicNotes: {}, githubUser: '', githubPin: '', githubLogin: '', installDismissed: false, theme: prefersDark ? 'dark' : 'light', pomodoro: { sessions: 0, total: 0, date: '', focusMin: 25, breakMin: 5, endTs: 0, mode: 'Focus', running: false }, examDate: '', planWeeksAhead: 26, studyDays: 5 };
   }
 
   function saveState() {
@@ -1412,6 +1413,11 @@
     return !!(state.githubUser && state.githubPin);
   }
 
+  function githubOwner() {
+    // Always use the authenticated login (case-insensitive in URLs, avoids 404 on case mismatch)
+    return state.githubLogin || state.githubUser;
+  }
+
   function getGithubAuth() {
     return btoa(state.githubUser + ':' + state.githubPin);
   }
@@ -1420,12 +1426,13 @@
     const auth = btoa(user + ':' + pass);
     const res = await fetch(GITHUB_API + '/user', { headers: { Authorization: 'Basic ' + auth } });
     if (!res.ok) throw new Error('Invalid credentials (' + res.status + ')');
-    return (await res.json()).login;
+    const json = await res.json();
+    return json.login;
   }
 
   async function getRepoContent(path) {
     const auth = getGithubAuth();
-    const url = GITHUB_API + '/repos/' + state.githubUser + '/' + GITHUB_REPO + '/contents/' + path;
+    const url = GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO + '/contents/' + path;
     const res = await fetch(url, { headers: { Authorization: 'Basic ' + auth } });
     if (res.status === 404) return null;
     if (!res.ok) throw new Error('Cloud read error (' + res.status + ')');
@@ -1434,7 +1441,7 @@
 
   async function putRepoContent(path, content, sha) {
     const auth = getGithubAuth();
-    const url = GITHUB_API + '/repos/' + state.githubUser + '/' + GITHUB_REPO + '/contents/' + path;
+    const url = GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO + '/contents/' + path;
     const body = { message: 'sync anesthetick data', content: btoa(unescape(encodeURIComponent(JSON.stringify(content)))) };
     if (sha) body.sha = sha;
     const res = await fetch(url, {
@@ -1447,14 +1454,15 @@
 
   async function ensureRepo() {
     const auth = getGithubAuth();
-    const check = await fetch(GITHUB_API + '/repos/' + state.githubUser + '/' + GITHUB_REPO, {
+    const owner = githubOwner();
+    const check = await fetch(GITHUB_API + '/repos/' + owner + '/' + GITHUB_REPO, {
       headers: { Authorization: 'Basic ' + auth }
     });
     if (check.ok) {
       // Make sure the default branch actually exists (auto_init is async)
       const repo = await check.json().catch(() => null);
       const branch = repo && repo.default_branch ? repo.default_branch : 'main';
-      const ref = await fetch(GITHUB_API + '/repos/' + state.githubUser + '/' + GITHUB_REPO + '/git/refs/heads/' + branch, {
+      const ref = await fetch(GITHUB_API + '/repos/' + owner + '/' + GITHUB_REPO + '/git/refs/heads/' + branch, {
         headers: { Authorization: 'Basic ' + auth }
       });
       if (ref.ok) return;
@@ -1471,16 +1479,16 @@
     }
     if (!res.ok) {
       const msg = await res.json().catch(() => ({}));
-      throw new Error('Cannot create repo. Create a repo called "' + GITHUB_REPO + '" on GitHub, or ensure your PAT has the "repo" scope. (' + (msg.message || res.status) + ')');
+      throw new Error('Cannot create repo "' + GITHUB_REPO + '". (' + (msg.message || res.status) + ') Ensure your PAT has the "repo" scope and the repo name is free.');
     }
     // Wait for repo + default branch to be ready before writing
     for (let i = 0; i < 10; i++) {
       await new Promise(r => setTimeout(r, 1000));
-      const recheck = await fetch(GITHUB_API + '/repos/' + state.githubUser + '/' + GITHUB_REPO + '/git/refs/heads/main', {
+      const recheck = await fetch(GITHUB_API + '/repos/' + owner + '/' + GITHUB_REPO + '/git/refs/heads/main', {
         headers: { Authorization: 'Basic ' + auth }
       });
       if (recheck.ok) return;
-      const recheck2 = await fetch(GITHUB_API + '/repos/' + state.githubUser + '/' + GITHUB_REPO + '/git/refs/heads/master', {
+      const recheck2 = await fetch(GITHUB_API + '/repos/' + owner + '/' + GITHUB_REPO + '/git/refs/heads/master', {
         headers: { Authorization: 'Basic ' + auth }
       });
       if (recheck2.ok) return;
@@ -1522,6 +1530,7 @@
   async function cloudRegister(user, pass) {
     const login = await testCloudConnection(user, pass);
     state.githubUser = user;
+    state.githubLogin = login;
     state.githubPin = pass;
     saveState();
     await ensureRepo();
@@ -1533,6 +1542,7 @@
   async function cloudLogin(user, pass) {
     const login = await testCloudConnection(user, pass);
     state.githubUser = user;
+    state.githubLogin = login;
     state.githubPin = pass;
     saveState();
     let loaded = false;
@@ -1583,6 +1593,8 @@
   function tryAutoLogin() {
     if (!isCloudConnected()) return;
     testCloudConnection(state.githubUser, state.githubPin).then(login => {
+      state.githubLogin = login;
+      saveState();
       // Load remote data (merge) on app start
       syncFromGithub().then(data => {
         const changed = applyCloudData(data);
@@ -1934,6 +1946,8 @@
         (async () => {
           try {
             const login = await testCloudConnection(state.githubUser, state.githubPin);
+            state.githubLogin = login;
+            saveState();
             await ensureRepo();
             toast('Connected as ' + login + ' — repo ready');
           } catch (err) {
