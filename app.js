@@ -1451,9 +1451,27 @@
     return btoa(state.githubUser + ':' + state.githubPin);
   }
 
+  // GitHub fetch with a hard timeout so a hung/proxied request can't stall the UI forever
+  async function ghFetch(url, opts) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 15000);
+    try {
+      return await fetch(url, Object.assign({ signal: ctrl.signal }, opts));
+    } catch (e) {
+      if (e && e.name === 'AbortError') {
+        const err = new Error('GitHub request timed out (15s) — check your network/proxy.');
+        err.isTimeout = true;
+        throw err;
+      }
+      throw e;
+    } finally {
+      clearTimeout(t);
+    }
+  }
+
   async function testCloudConnection(user, pass) {
     const auth = btoa(user + ':' + pass);
-    const res = await fetch(GITHUB_API + '/user', { headers: { Authorization: 'Basic ' + auth } });
+    const res = await ghFetch(GITHUB_API + '/user', { headers: { Authorization: 'Basic ' + auth } });
     if (!res.ok) {
       const t = await res.text().catch(() => '');
       if (/<!DOCTYPE/i.test(t)) throw new Error('GitHub is unreachable right now (rate limit or outage). Try again shortly.');
@@ -1470,8 +1488,8 @@
     // which otherwise returns a stale `sha` right after a write and causes 422 "does not match".
     const url = GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO + '/contents/' + path + '?ts=' + Date.now();
     let lastErr;
-    for (let i = 0; i < 4; i++) {
-      const res = await fetch(url, {
+    for (let i = 0; i < 2; i++) {
+      const res = await ghFetch(url, {
         headers: { Authorization: 'Basic ' + auth, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
         cache: 'no-store'
       });
@@ -1514,7 +1532,7 @@
     }
     const body = { message: 'sync anesthetick data', content: btoa(unescape(encodeURIComponent(jsonStr))) };
     if (sha) body.sha = sha;
-    const res = await fetch(url, {
+    const res = await ghFetch(url, {
       method: 'PUT',
       headers: { Authorization: 'Basic ' + auth, 'Content-Type': 'application/json' },
       body: JSON.stringify(body)
@@ -1525,19 +1543,19 @@
   async function ensureRepo() {
     const auth = getGithubAuth();
     const owner = githubOwner();
-    const check = await fetch(GITHUB_API + '/repos/' + owner + '/' + GITHUB_REPO, {
+    const check = await ghFetch(GITHUB_API + '/repos/' + owner + '/' + GITHUB_REPO, {
       headers: { Authorization: 'Basic ' + auth }
     });
     if (check.ok) {
       // Make sure the default branch actually exists (auto_init is async)
       const repo = await check.json().catch(() => null);
       const branch = repo && repo.default_branch ? repo.default_branch : 'main';
-      const ref = await fetch(GITHUB_API + '/repos/' + owner + '/' + GITHUB_REPO + '/git/refs/heads/' + branch, {
+      const ref = await ghFetch(GITHUB_API + '/repos/' + owner + '/' + GITHUB_REPO + '/git/refs/heads/' + branch, {
         headers: { Authorization: 'Basic ' + auth }
       });
       if (ref.ok) return;
     }
-    const res = await fetch(GITHUB_API + '/user/repos', {
+    const res = await ghFetch(GITHUB_API + '/user/repos', {
       method: 'POST',
       headers: { Authorization: 'Basic ' + auth, 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: GITHUB_REPO, description: 'Anesthetick study sync', private: false, auto_init: true })
@@ -1552,13 +1570,13 @@
       throw new Error('Cannot create repo "' + GITHUB_REPO + '". (' + (msg.message || res.status) + ') Ensure your PAT has the "repo" scope and the repo name is free.');
     }
     // Wait for repo + default branch to be ready before writing
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 4; i++) {
       await new Promise(r => setTimeout(r, 1000));
-      const recheck = await fetch(GITHUB_API + '/repos/' + owner + '/' + GITHUB_REPO + '/git/refs/heads/main', {
+      const recheck = await ghFetch(GITHUB_API + '/repos/' + owner + '/' + GITHUB_REPO + '/git/refs/heads/main', {
         headers: { Authorization: 'Basic ' + auth }
       });
       if (recheck.ok) return;
-      const recheck2 = await fetch(GITHUB_API + '/repos/' + owner + '/' + GITHUB_REPO + '/git/refs/heads/master', {
+      const recheck2 = await ghFetch(GITHUB_API + '/repos/' + owner + '/' + GITHUB_REPO + '/git/refs/heads/master', {
         headers: { Authorization: 'Basic ' + auth }
       });
       if (recheck2.ok) return;
@@ -1573,13 +1591,13 @@
     syncInFlight = (async () => {
       await ensureRepo();
       let lastErr;
-      for (let attempt = 0; attempt < 8; attempt++) {
+      for (let attempt = 0; attempt < 4; attempt++) {
         let existing;
         try {
           existing = await getRepoContent(GITHUB_DATA_PATH);
         } catch (readErr) {
           // Read failed (e.g. 502) — treat as transient and retry
-          if (attempt < 7) {
+          if (attempt < 3) {
             lastErr = new Error('Cloud read error — retrying… (' + (attempt + 1) + ')');
             await new Promise(r => setTimeout(r, 1000 * Math.pow(1.6, attempt)));
             continue;
@@ -1598,14 +1616,14 @@
       if (attempt === 0) console.error('[anesthetick] GitHub PUT status', res.status, 'body:', rawBody.slice(0, 300));
       // Transient GitHub errors (5xx, rate limit, outage HTML) — retry
       const transient = res.status === 0 || res.status >= 500 || /rate limit/i.test(msg) || /<!DOCTYPE/i.test(msg);
-      if (transient && attempt < 7) {
+      if (transient && attempt < 3) {
         lastErr = new Error('GitHub busy — retrying… (' + (attempt + 1) + ')');
         await new Promise(r => setTimeout(r, 1000 * Math.pow(1.6, attempt)));
         continue;
       }
       // 409/422 "sha does not match" / conflict — file changed remotely (or GET was cached); re-read fresh sha and retry
       const conflict = res.status === 409 || res.status === 422 || /does not match/i.test(msg) || /branch was modified/i.test(msg);
-      if (conflict && attempt < 7) {
+      if (conflict && attempt < 3) {
         lastErr = new Error('Sync conflict — retrying… (' + (attempt + 1) + ')');
         await new Promise(r => setTimeout(r, 1000 * Math.pow(1.6, attempt)));
         continue;
@@ -1668,6 +1686,8 @@
       // No remote data yet — start fresh but tell the user
       if (err.message && err.message.indexOf('No data found') !== -1) {
         toast('Welcome ' + login + ' — no saved data on cloud yet');
+      } else if (err.isTimeout || /timed out|502|503|read error|unreachable/i.test(err.message || '')) {
+        toast('Welcome ' + login + ' — cloud unreachable, using local data');
       } else {
         toast('Welcome ' + login + ' — could not load cloud data');
       }
