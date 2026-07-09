@@ -1427,6 +1427,13 @@
     return !!(state.githubUser && state.githubPin);
   }
 
+  /* ══════════════════════════════════════════════════════════════
+     CLOUD SYNC (GitHub) — clean rewrite
+     Storage: <owner>/anesthetick  →  anesthetick-data.json  (Contents API)
+     ══════════════════════════════════════════════════════════════ */
+
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+
   let syncState = 'idle'; // idle | syncing | ok | error
   let syncStateMsg = '';
   function syncStatusLabel() {
@@ -1443,15 +1450,14 @@
   }
 
   function githubOwner() {
-    // Always use the authenticated login (case-insensitive in URLs, avoids 404 on case mismatch)
+    // Use the authenticated login (exact case) to avoid owner-case 404s
     return state.githubLogin || state.githubUser;
   }
-
-  function getGithubAuth() {
-    return btoa(state.githubUser + ':' + state.githubPin);
+  function authHeader() {
+    return 'Basic ' + btoa(state.githubUser + ':' + state.githubPin);
   }
 
-  // GitHub fetch with a hard timeout so a hung/proxied request can't stall the UI forever
+  // Timeout-protected fetch so a hung/proxied request can never stall the UI
   async function ghFetch(url, opts) {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 15000);
@@ -1469,191 +1475,141 @@
     }
   }
 
+  function ghHeaders(extra) {
+    return Object.assign({ Authorization: authHeader() }, extra || {});
+  }
+
   async function testCloudConnection(user, pass) {
-    const auth = btoa(user + ':' + pass);
-    const res = await ghFetch(GITHUB_API + '/user', { headers: { Authorization: 'Basic ' + auth } });
+    const res = await ghFetch(GITHUB_API + '/user', { headers: { Authorization: 'Basic ' + btoa(user + ':' + pass) } });
     if (!res.ok) {
       const t = await res.text().catch(() => '');
-      if (/<!DOCTYPE/i.test(t)) throw new Error('GitHub is unreachable right now (rate limit or outage). Try again shortly.');
+      if (/<!DOCTYPE/i.test(t)) throw new Error('GitHub is unreachable (rate limit or outage). Try again shortly.');
       throw new Error('Invalid credentials (' + res.status + ')');
     }
     const json = await res.json().catch(() => null);
-    if (!json || !json.login) throw new Error('Could not read GitHub account (unexpected response).');
+    if (!json || !json.login) throw new Error('Could not read GitHub account.');
     return json.login;
   }
 
-  async function getRepoContent(path) {
-    const auth = getGithubAuth();
-    // Cache-busting query defeats GitHub's CDN caching of the Contents API GET,
-    // which otherwise returns a stale `sha` right after a write and causes 422 "does not match".
-    const url = GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO + '/contents/' + path + '?ts=' + Date.now();
-    let lastErr;
-    for (let i = 0; i < 2; i++) {
-      const res = await ghFetch(url, {
-        headers: { Authorization: 'Basic ' + auth, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
-        cache: 'no-store'
-      });
-      if (res.status === 404) return null;
-      if (res.ok) return await res.json().catch(() => null);
-      // 5xx / 502 / 503 are transient — retry with backoff
-      if (res.status >= 500) {
-        lastErr = new Error('Cloud read error (' + res.status + ') — retrying…');
-        await new Promise(r => setTimeout(r, 800 * (i + 1)));
-        continue;
-      }
-      const t = await res.text().catch(() => '');
-      if (/<!DOCTYPE/i.test(t)) throw new Error('GitHub is unreachable right now (rate limit or outage). Try again shortly.');
-      throw new Error('Cloud read error (' + res.status + ')');
-    }
-    throw lastErr || new Error('Cloud read failed after retries');
-  }
-
-  function safeStringify(v) {
-    // Drop functions, undefined, and circular refs so the payload is always valid JSON
-    const seen = new WeakSet();
-    return JSON.stringify(v, (k, val) => {
-      if (typeof val === 'function' || typeof val === 'undefined') return undefined;
-      if (typeof val === 'object' && val !== null) {
-        if (seen.has(val)) return undefined;
-        seen.add(val);
-      }
-      return val;
-    });
-  }
-
-  async function putRepoContent(path, content, sha) {
-    const auth = getGithubAuth();
+  // GET a file from the repo. Returns { sha, content(base64) } or null if missing.
+  async function readCloudFile(path) {
     const url = GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO + '/contents/' + path;
-    let jsonStr;
-    try {
-      jsonStr = safeStringify(content);
-    } catch (e) {
-      throw new Error('Could not serialize data: ' + e.message);
+    const res = await ghFetch(url, { headers: ghHeaders(), cache: 'no-store' });
+    if (res.status === 404) return null;
+    if (res.ok) {
+      const j = await res.json().catch(() => null);
+      return j && j.sha ? { sha: j.sha, content: j.content } : null;
     }
-    const body = { message: 'sync anesthetick data', content: btoa(unescape(encodeURIComponent(jsonStr))) };
+    if (res.status >= 500) {
+      const err = new Error('GitHub read error (' + res.status + ')');
+      err.transient = true;
+      throw err;
+    }
+    const t = await res.text().catch(() => '');
+    if (/<!DOCTYPE/i.test(t)) {
+      const err = new Error('GitHub is unreachable (proxy/outage).');
+      err.transient = true;
+      throw err;
+    }
+    const err = new Error('GitHub read error (' + res.status + ')');
+    throw err;
+  }
+
+  function encodePayload(data) {
+    const json = JSON.stringify(data);
+    return btoa(unescape(encodeURIComponent(json)));
+  }
+
+  // PUT a file. Returns the API response (caller inspects status).
+  async function writeCloudFile(path, contentB64, sha) {
+    const url = GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO + '/contents/' + path;
+    const body = { message: 'Anesthetick sync', content: contentB64 };
     if (sha) body.sha = sha;
-    const res = await ghFetch(url, {
+    return ghFetch(url, {
       method: 'PUT',
-      headers: { Authorization: 'Basic ' + auth, 'Content-Type': 'application/json' },
+      headers: ghHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify(body)
     });
-    return res;
   }
 
   async function ensureRepo() {
-    const auth = getGithubAuth();
-    const owner = githubOwner();
-    const check = await ghFetch(GITHUB_API + '/repos/' + owner + '/' + GITHUB_REPO, {
-      headers: { Authorization: 'Basic ' + auth }
-    });
+    const check = await ghFetch(GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO, { headers: ghHeaders() });
     if (check.ok) {
-      // Make sure the default branch actually exists (auto_init is async)
       const repo = await check.json().catch(() => null);
       const branch = repo && repo.default_branch ? repo.default_branch : 'main';
-      const ref = await ghFetch(GITHUB_API + '/repos/' + owner + '/' + GITHUB_REPO + '/git/refs/heads/' + branch, {
-        headers: { Authorization: 'Basic ' + auth }
-      });
+      const ref = await ghFetch(GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO + '/git/refs/heads/' + branch, { headers: ghHeaders() });
       if (ref.ok) return;
     }
+    // Create the repo
     const res = await ghFetch(GITHUB_API + '/user/repos', {
       method: 'POST',
-      headers: { Authorization: 'Basic ' + auth, 'Content-Type': 'application/json' },
+      headers: ghHeaders({ 'Content-Type': 'application/json' }),
       body: JSON.stringify({ name: GITHUB_REPO, description: 'Anesthetick study sync', private: false, auto_init: true })
     });
     if (res.status === 422) {
-      // Repo exists but we couldn't read it above — likely a scope/permission issue
-      const err = await res.json().catch(() => ({}));
-      throw new Error('Repo "' + GITHUB_REPO + '" already exists but is not accessible. ' + (err.message || 'Ensure your PAT has the "repo" scope.'));
+      // Repo exists but wasn't readable above (scope/permissions) — surface clearly
+      const m = await res.json().catch(() => ({}));
+      throw new Error('Repo "' + GITHUB_REPO + '" exists but is not accessible. ' + (m.message || 'Ensure your PAT has the "repo" scope.'));
     }
     if (!res.ok) {
-      const msg = await res.json().catch(() => ({}));
-      throw new Error('Cannot create repo "' + GITHUB_REPO + '". (' + (msg.message || res.status) + ') Ensure your PAT has the "repo" scope and the repo name is free.');
+      const m = await res.json().catch(() => ({}));
+      throw new Error('Cannot create repo "' + GITHUB_REPO + '". (' + (m.message || res.status) + ')');
     }
-    // Wait for repo + default branch to be ready before writing
-    for (let i = 0; i < 4; i++) {
+    // Wait for the default branch to be ready
+    for (let i = 0; i < 5; i++) {
       await new Promise(r => setTimeout(r, 1000));
-      const recheck = await ghFetch(GITHUB_API + '/repos/' + owner + '/' + GITHUB_REPO + '/git/refs/heads/main', {
-        headers: { Authorization: 'Basic ' + auth }
-      });
-      if (recheck.ok) return;
-      const recheck2 = await ghFetch(GITHUB_API + '/repos/' + owner + '/' + GITHUB_REPO + '/git/refs/heads/master', {
-        headers: { Authorization: 'Basic ' + auth }
-      });
-      if (recheck2.ok) return;
+      const rc = await ghFetch(GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO + '/git/refs/heads/main', { headers: ghHeaders() });
+      if (rc.ok) return;
+      const rm = await ghFetch(GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO + '/git/refs/heads/master', { headers: ghHeaders() });
+      if (rm.ok) return;
     }
   }
 
+  // Serialize writes so manual save + autosave never race (avoids sha conflict)
   let syncInFlight = null;
   async function syncToGithub(data) {
     if (!isCloudConnected()) throw new Error('Not connected — log in first');
-    // Serialize all cloud writes so manual save + autosave can't race and cause "sha does not match"
     if (syncInFlight) return syncInFlight;
     syncInFlight = (async () => {
+      const contentB64 = encodePayload(data);
       await ensureRepo();
-      let lastErr;
-      for (let attempt = 0; attempt < 4; attempt++) {
-        let existing;
-        try {
-          existing = await getRepoContent(GITHUB_DATA_PATH);
-        } catch (readErr) {
-          // Read failed (e.g. 502) — treat as transient and retry
-          if (attempt < 3) {
-            lastErr = new Error('Cloud read error — retrying… (' + (attempt + 1) + ')');
-            await new Promise(r => setTimeout(r, 1000 * Math.pow(1.6, attempt)));
-            continue;
-          }
-          throw readErr;
+      for (let attempt = 0; attempt < 6; attempt++) {
+        const existing = await readCloudFile(GITHUB_DATA_PATH).catch(e => { if (e.transient && attempt < 5) return 'RETRY'; throw e; });
+        if (existing === 'RETRY') { await sleep(1200 * attempt); continue; }
+        const sha = existing ? existing.sha : null;
+        const res = await writeCloudFile(GITHUB_DATA_PATH, contentB64, sha);
+        if (res.ok) return true;
+        const info = await res.text().catch(() => '');
+        let msg = info.slice(0, 200);
+        try { msg = (JSON.parse(info).message) || msg; } catch (_) {}
+        if (attempt === 0) console.error('[anesthetick] PUT status', res.status, info.slice(0, 300));
+        const conflict = res.status === 409 || res.status === 422 || /does not match/i.test(msg) || /branch was modified/i.test(msg);
+        const transient = res.status >= 500 || res.status === 0 || /rate limit/i.test(msg) || /<!DOCTYPE/i.test(msg);
+        if ((conflict || transient) && attempt < 5) {
+          await sleep(1000 * Math.pow(1.5, attempt));
+          continue;
         }
-      const sha = existing ? existing.sha : null;
-      const res = await putRepoContent(GITHUB_DATA_PATH, data, sha);
-      if (res.ok) return true;
-      let msg = '';
-      let rawBody = '';
-      try {
-        rawBody = await res.text();
-        try { msg = (JSON.parse(rawBody).message) || rawBody.slice(0, 200); } catch (_) { msg = rawBody.slice(0, 200); }
-      } catch (_) {}
-      if (attempt === 0) console.error('[anesthetick] GitHub PUT status', res.status, 'body:', rawBody.slice(0, 300));
-      // Transient GitHub errors (5xx, rate limit, outage HTML) — retry
-      const transient = res.status === 0 || res.status >= 500 || /rate limit/i.test(msg) || /<!DOCTYPE/i.test(msg);
-      if (transient && attempt < 3) {
-        lastErr = new Error('GitHub busy — retrying… (' + (attempt + 1) + ')');
-        await new Promise(r => setTimeout(r, 1000 * Math.pow(1.6, attempt)));
-        continue;
+        if (res.status === 403) throw new Error('Save rejected (403): PAT likely lacks "repo" scope.');
+        if (res.status === 404) throw new Error('Repo "' + GITHUB_REPO + '" not found on GitHub.');
+        throw new Error('Save failed: ' + msg);
       }
-      // 409/422 "sha does not match" / conflict — file changed remotely (or GET was cached); re-read fresh sha and retry
-      const conflict = res.status === 409 || res.status === 422 || /does not match/i.test(msg) || /branch was modified/i.test(msg);
-      if (conflict && attempt < 3) {
-        lastErr = new Error('Sync conflict — retrying… (' + (attempt + 1) + ')');
-        await new Promise(r => setTimeout(r, 1000 * Math.pow(1.6, attempt)));
-        continue;
-      }
-      if (res.status === 404 && attempt < 2) {
-        lastErr = new Error('Repo not ready yet — retrying…');
-        await new Promise(r => setTimeout(r, 1500));
-        continue;
-      }
-      if (res.status === 403) throw new Error('GitHub rejected the save (403). Your PAT likely lacks the "repo" scope, or the repo is private without access.');
-      if (res.status === 404) throw new Error('Repo "' + GITHUB_REPO + '" not found. Create it on GitHub and try again.');
-      throw new Error('Save failed: ' + (msg || res.status));
-    }
-    throw lastErr || new Error('Save failed after retries');
+      throw new Error('Save failed after retries');
     })().finally(() => { syncInFlight = null; });
     return syncInFlight;
   }
 
   async function syncFromGithub() {
     if (!isCloudConnected()) throw new Error('Not connected');
-    const existing = await getRepoContent(GITHUB_DATA_PATH);
+    const existing = await readCloudFile(GITHUB_DATA_PATH);
     if (!existing || !existing.content) throw new Error('No data found on cloud');
-    let content;
+    let text;
     try {
-      content = decodeURIComponent(escape(atob(existing.content)));
+      text = decodeURIComponent(escape(atob(existing.content)));
     } catch (e) {
-      throw new Error('Cloud data is not valid base64 (repo contents may be corrupted).');
+      throw new Error('Cloud data is not valid base64 (corrupted).');
     }
     try {
-      return JSON.parse(content);
+      return JSON.parse(text);
     } catch (e) {
       throw new Error('Saved cloud data is corrupted and could not be parsed.');
     }
@@ -1677,24 +1633,20 @@
     state.githubLogin = login;
     state.githubPin = pass;
     saveState();
-    let loaded = false;
     try {
       const data = await syncFromGithub();
-      loaded = applyCloudData(data);
+      const loaded = applyCloudData(data);
       saveState();
+      toast('Welcome back ' + login + (loaded ? ' — data loaded' : ''));
     } catch (err) {
-      // No remote data yet — start fresh but tell the user
       if (err.message && err.message.indexOf('No data found') !== -1) {
         toast('Welcome ' + login + ' — no saved data on cloud yet');
-      } else if (err.isTimeout || /timed out|502|503|read error|unreachable/i.test(err.message || '')) {
+      } else if (err.isTimeout || /timed out|502|503|read error|unreachable|transient/i.test(err.message || '')) {
         toast('Welcome ' + login + ' — cloud unreachable, using local data');
       } else {
-        toast('Welcome ' + login + ' — could not load cloud data');
+        toast('Welcome ' + login + ' — ' + err.message);
       }
-      navigate('home');
-      return;
     }
-    toast('Welcome back ' + login + (loaded ? ' — data loaded' : ''));
     navigate('home');
   }
 
@@ -1706,21 +1658,16 @@
     navigate('settings');
   }
 
-  // Auto-sync when data changes (debounced)
+  // Debounced auto-save after every local change
   let autoSyncTimer;
   let lastAutoSyncError = 0;
-  let lastAutoSyncOk = 0;
   function triggerAutoSync() {
-    if (!isCloudConnected()) return;
+    if (!isCloudConnected()) { setSyncStatus('idle'); return; }
     clearTimeout(autoSyncTimer);
     setSyncStatus('syncing');
     autoSyncTimer = setTimeout(() => {
       syncToGithub(cloudPayload())
-        .then(() => {
-          lastAutoSyncError = 0;
-          lastAutoSyncOk = Date.now();
-          setSyncStatus('ok');
-        })
+        .then(() => setSyncStatus('ok'))
         .catch(err => {
           const now = Date.now();
           setSyncStatus('error', err.message);
@@ -1732,23 +1679,19 @@
     }, 2500);
   }
 
-  // Auto-login on start
+  // Auto-login + load cloud data on app start
   function tryAutoLogin() {
     if (!isCloudConnected()) return;
-    testCloudConnection(state.githubUser, state.githubPin).then(login => {
-      state.githubLogin = login;
-      saveState();
-      // Load remote data (merge) on app start
-      syncFromGithub().then(data => {
-        const changed = applyCloudData(data);
-        if (changed) { saveState(); updatePlannerPct?.(); }
-      }).catch(() => {});
-    }).catch(() => {
-      // Credentials invalid — clear them
-      state.githubUser = '';
-      state.githubPin = '';
-      saveState();
-    });
+    testCloudConnection(state.githubUser, state.githubPin)
+      .then(login => {
+        state.githubLogin = login;
+        saveState();
+        return syncFromGithub();
+      })
+      .then(data => {
+        if (applyCloudData(data)) { saveState(); updatePlannerPct?.(); }
+      })
+      .catch(() => { /* ignore: no data / unreachable */ });
   }
 
   // Login/Register dialog
