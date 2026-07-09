@@ -1461,10 +1461,29 @@
     return await res.json();
   }
 
+  function safeStringify(v) {
+    // Drop functions, undefined, and circular refs so the payload is always valid JSON
+    const seen = new WeakSet();
+    return JSON.stringify(v, (k, val) => {
+      if (typeof val === 'function' || typeof val === 'undefined') return undefined;
+      if (typeof val === 'object' && val !== null) {
+        if (seen.has(val)) return undefined;
+        seen.add(val);
+      }
+      return val;
+    });
+  }
+
   async function putRepoContent(path, content, sha) {
     const auth = getGithubAuth();
     const url = GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO + '/contents/' + path;
-    const body = { message: 'sync anesthetick data', content: btoa(unescape(encodeURIComponent(JSON.stringify(content)))) };
+    let jsonStr;
+    try {
+      jsonStr = safeStringify(content);
+    } catch (e) {
+      throw new Error('Could not serialize data: ' + e.message);
+    }
+    const body = { message: 'sync anesthetick data', content: btoa(unescape(encodeURIComponent(jsonStr))) };
     if (sha) body.sha = sha;
     const res = await fetch(url, {
       method: 'PUT',
@@ -1527,7 +1546,10 @@
       const res = await putRepoContent(GITHUB_DATA_PATH, data, sha);
       if (res.ok) return true;
       let msg = '';
-      try { msg = (await res.json()).message || ''; } catch (_) {}
+      try {
+        const t = await res.text();
+        try { msg = (JSON.parse(t).message) || t.slice(0, 120); } catch (_) { msg = t.slice(0, 120); }
+      } catch (_) {}
       if (res.status === 404 && attempt < 2) {
         // Repo/branch may still be initializing — wait and retry
         lastErr = new Error('Repo not ready yet — retrying…');
@@ -1546,7 +1568,11 @@
     const existing = await getRepoContent(GITHUB_DATA_PATH);
     if (!existing || !existing.content) throw new Error('No data found on cloud');
     const content = decodeURIComponent(escape(atob(existing.content)));
-    return JSON.parse(content);
+    try {
+      return JSON.parse(content);
+    } catch (e) {
+      throw new Error('Saved cloud data is corrupted and could not be parsed.');
+    }
   }
 
   async function cloudRegister(user, pass) {
