@@ -1107,6 +1107,13 @@
             <button class="btn-primary" data-action="cloud-login" style="flex:1">${ICONS.download} Login</button>
             <button class="btn-ghost" data-action="cloud-register" style="flex:1">Register</button>
           </div>
+          <div class="set-row" style="border-color:transparent">
+            <div class="set-info">
+              <div class="lbl">Auto-save</div>
+              <div class="desc">Saves to cloud after every change (log in to enable)</div>
+            </div>
+            <span class="sync-status" id="syncStatus">${syncStatusLabel()}</span>
+          </div>
         `}
       </div>
 
@@ -1536,12 +1543,16 @@
     }
   }
 
+  let syncInFlight = null;
   async function syncToGithub(data) {
     if (!isCloudConnected()) throw new Error('Not connected — log in first');
-    await ensureRepo();
-    let lastErr;
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const existing = await getRepoContent(GITHUB_DATA_PATH);
+    // Serialize all cloud writes so manual save + autosave can't race and cause "sha does not match"
+    if (syncInFlight) return syncInFlight;
+    syncInFlight = (async () => {
+      await ensureRepo();
+      let lastErr;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        const existing = await getRepoContent(GITHUB_DATA_PATH);
       const sha = existing ? existing.sha : null;
       const res = await putRepoContent(GITHUB_DATA_PATH, data, sha);
       if (res.ok) return true;
@@ -1550,8 +1561,14 @@
         const t = await res.text();
         try { msg = (JSON.parse(t).message) || t.slice(0, 120); } catch (_) { msg = t.slice(0, 120); }
       } catch (_) {}
+      // 409/422 "sha does not match" / conflict — the file changed remotely; re-read and retry
+      const conflict = res.status === 409 || res.status === 422 || /does not match/i.test(msg) || /branch was modified/i.test(msg);
+      if (conflict && attempt < 4) {
+        lastErr = new Error('Sync conflict — retrying…');
+        await new Promise(r => setTimeout(r, 800));
+        continue;
+      }
       if (res.status === 404 && attempt < 2) {
-        // Repo/branch may still be initializing — wait and retry
         lastErr = new Error('Repo not ready yet — retrying…');
         await new Promise(r => setTimeout(r, 1500));
         continue;
@@ -1561,6 +1578,8 @@
       throw new Error('Save failed: ' + (msg || res.status));
     }
     throw lastErr || new Error('Save failed after retries');
+    })().finally(() => { syncInFlight = null; });
+    return syncInFlight;
   }
 
   async function syncFromGithub() {
