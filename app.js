@@ -22,12 +22,18 @@
         if (!parsed.topicNotes) parsed.topicNotes = {};
         if (!parsed.githubUser) parsed.githubUser = '';
         if (!parsed.githubPin) parsed.githubPin = '';
-        if (!parsed.pomodoro) parsed.pomodoro = { sessions: 0, date: '', focusMin: 25, breakMin: 5 };
+        if (!parsed.pomodoro) parsed.pomodoro = { sessions: 0, total: 0, date: '', focusMin: 25, breakMin: 5, endTs: 0, mode: 'Focus', running: false };
+        if (typeof parsed.pomodoro.total !== 'number') parsed.pomodoro.total = 0;
+        if (typeof parsed.pomodoro.endTs !== 'number') parsed.pomodoro.endTs = 0;
+        if (typeof parsed.pomodoro.running !== 'boolean') parsed.pomodoro.running = false;
+        if (!parsed.examDate) parsed.examDate = '';
+        if (typeof parsed.planWeeksAhead !== 'number') parsed.planWeeksAhead = 26;
+        if (typeof parsed.studyDays !== 'number') parsed.studyDays = 5;
         return parsed;
       }
     } catch (_) {}
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    return { progress: {}, bookmarks: [], subBookmarks: [], customSubs: {}, topicNotes: {}, githubUser: '', githubPin: '', installDismissed: false, theme: prefersDark ? 'dark' : 'light', pomodoro: { sessions: 0, date: '', focusMin: 25, breakMin: 5 } };
+    return { progress: {}, bookmarks: [], subBookmarks: [], customSubs: {}, topicNotes: {}, githubUser: '', githubPin: '', installDismissed: false, theme: prefersDark ? 'dark' : 'light', pomodoro: { sessions: 0, total: 0, date: '', focusMin: 25, breakMin: 5, endTs: 0, mode: 'Focus', running: false }, examDate: '', planWeeksAhead: 26, studyDays: 5 };
   }
 
   function saveState() {
@@ -557,6 +563,26 @@
     return inner;
   }
 
+  /* ── Planning helpers ───────────────────────────────────── */
+  function planHorizonWeeks() {
+    if (state.examDate) {
+      const exam = new Date(state.examDate + 'T00:00:00');
+      const now = new Date(); now.setHours(0, 0, 0, 0);
+      const days = Math.round((exam - now) / 86400000);
+      const weeks = Math.floor(days / 7);
+      return { weeks: Math.max(weeks, 1), daysUntilExam: days, examDate: exam };
+    }
+    return { weeks: Math.max(state.planWeeksAhead || 26, 1), daysUntilExam: null, examDate: null };
+  }
+
+  function examCountdownLabel() {
+    const h = planHorizonWeeks();
+    if (h.daysUntilExam === null) return null;
+    if (h.daysUntilExam < 0) return 'Exam date passed';
+    if (h.daysUntilExam === 0) return 'Exam is today!';
+    return h.daysUntilExam + ' days to exam';
+  }
+
   /* ── Planner view ────────────────────────────────────────── */
   function viewPlanner() {
     const inner = document.createElement('div');
@@ -581,65 +607,84 @@
       }
 
       const remaining = ov.total - ov.done;
-      const WEEKS_TIL_EXAM = 26;
-      const weeklyTarget = Math.ceil(remaining / Math.max(WEEKS_TIL_EXAM, 1));
-      const dailyTarget = Math.ceil(weeklyTarget / 5);
-      const estDate = new Date();
-      estDate.setDate(estDate.getDate() + (remaining / Math.max(dailyTarget, 1)));
+      const studyDays = Math.max(state.studyDays || 5, 1);
+      const horizon = planHorizonWeeks();
+      const weeks = horizon.weeks;
+      const weeklyTarget = Math.ceil(remaining / weeks);
+      const dailyTarget = Math.ceil(weeklyTarget / studyDays);
 
-      // Pomodoro state
-      if (!state.pomodoro) {
-        state.pomodoro = { sessions: 0, date: '', focusMin: 25, breakMin: 5 };
-      }
+      // On-track indicator: subtopics done per week vs expected
+      const elapsedWeeks = horizon.examDate
+        ? Math.max(0, Math.floor((weeks * 7 - horizon.daysUntilExam) / 7))
+        : 0;
+      const expectedDone = elapsedWeeks * weeklyTarget;
+      const pace = expectedDone > 0 ? (ov.done / expectedDone) : (remaining === 0 ? 1 : 0);
+      const paceLabel = remaining === 0 ? 'Complete' : (pace >= 0.9 ? 'On track' : pace >= 0.6 ? 'Behind' : 'Way behind');
+      const paceClass = remaining === 0 ? 'ok' : (pace >= 0.9 ? 'ok' : pace >= 0.6 ? 'warn' : 'danger');
+
+      const countdown = examCountdownLabel();
+      const examStr = horizon.examDate
+        ? horizon.examDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
+        : (state.examDate ? '—' : 'Not set');
+
+      // Pomodoro state init (daily reset)
+      if (!state.pomodoro) state.pomodoro = { sessions: 0, total: 0, date: '', focusMin: 25, breakMin: 5, endTs: 0, mode: 'Focus', running: false };
       const today = new Date().toDateString();
       if (state.pomodoro.date !== today) {
         state.pomodoro.sessions = 0;
         state.pomodoro.date = today;
+        state.pomodoro.running = false;
+        state.pomodoro.endTs = 0;
+        saveState();
       }
 
       inner.innerHTML = html`
-        <div class="pl-card">
-          <div class="pl-ring-section">
+        <div class="pl-card pl-hero">
+          <div class="pl-ring-wrap">
             <svg viewBox="0 0 100 100" class="pl-ring">
               <circle cx="50" cy="50" r="40" fill="none" stroke="var(--surface2)" stroke-width="7"/>
               <circle cx="50" cy="50" r="40" fill="none" stroke="var(--accent)" stroke-width="7" stroke-dasharray="${2 * Math.PI * 40}" stroke-dashoffset="${2 * Math.PI * 40 * (1 - pct)}" transform="rotate(-90 50 50)" stroke-linecap="round"/>
               <text x="50" y="46" text-anchor="middle" dominant-baseline="central" font-size="20" font-weight="800" fill="var(--text)">${Math.round(pct * 100)}%</text>
               <text x="50" y="64" text-anchor="middle" font-size="9" fill="var(--muted)">complete</text>
             </svg>
-            <div class="pl-ring-stats">
-              <div class="pl-sRow"><span>Completed</span><strong>${ov.done}</strong></div>
-              <div class="pl-sRow"><span>Remaining</span><strong style="color:var(--warn)">${remaining}</strong></div>
-              <div class="pl-sRow"><span>Finish by</span><strong>${estDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</strong></div>
-            </div>
+          </div>
+          <div class="pl-hero-stats">
+            <div class="pl-sRow"><span>Completed</span><strong>${ov.done}</strong></div>
+            <div class="pl-sRow"><span>Remaining</span><strong style="color:var(--warn)">${remaining}</strong></div>
+            <div class="pl-sRow"><span>Exam date</span><strong>${examStr}</strong></div>
+            ${countdown ? html`<div class="pl-countdown ${horizon.daysUntilExam < 0 ? 'passed' : ''}">${countdown}</div>` : ''}
           </div>
         </div>
 
         <div class="pl-card">
-          <div class="pl-section-title">Study Plan</div>
+          <div class="pl-section-title">Your Study Plan</div>
           <div class="pl-plan-grid">
             <div class="pl-plan-item"><span class="pl-num">${dailyTarget}</span><span class="pl-lbl">Daily</span></div>
             <div class="pl-plan-item"><span class="pl-num">${weeklyTarget}</span><span class="pl-lbl">Weekly</span></div>
             <div class="pl-plan-item"><span class="pl-num">${remaining}</span><span class="pl-lbl">Left</span></div>
-            <div class="pl-plan-item"><span class="pl-num">${WEEKS_TIL_EXAM}</span><span class="pl-lbl">Weeks</span></div>
+            <div class="pl-plan-item"><span class="pl-num">${weeks}</span><span class="pl-lbl">Weeks</span></div>
           </div>
-          <div class="pl-focus">Focus: <strong>${catProgresses[0]?.cat?.name || '—'}</strong> (${catProgresses[0] ? Math.round(catProgresses[0].pct * 100) + '%' : '0%'} done)</div>
+          <div class="pl-pace">
+            <span class="pl-pace-badge ${paceClass}">${paceLabel}</span>
+            <span class="pl-focus">Focus: <strong>${catProgresses[0]?.cat?.name || '—'}</strong> (${catProgresses[0] ? Math.round(catProgresses[0].pct * 100) + '%' : '0%'} done)</span>
+          </div>
         </div>
 
         <div class="pl-card">
           <div class="pl-section-title">Pomodoro Timer</div>
           <div class="pl-timer">
-            <div class="pl-timer-display" id="plTimerDisplay">${formatTime(state.pomodoro.focusMin * 60)}</div>
-            <div class="pl-timer-mode" id="plTimerMode">Focus</div>
+            <div class="pl-timer-display" id="plTimerDisplay">${formatTime(currentTimerSeconds())}</div>
+            <div class="pl-timer-mode" id="plTimerMode">${state.pomodoro.mode || 'Focus'}</div>
             <div class="pl-timer-controls">
-              <button class="pl-timer-btn primary" id="plTimerStart">Start</button>
+              <button class="pl-timer-btn primary" id="plTimerStart">${timerRunning ? 'Pause' : 'Start'}</button>
               <button class="pl-timer-btn" id="plTimerReset">Reset</button>
             </div>
-            <div class="pl-timer-sessions">Today: <strong>${state.pomodoro.sessions}</strong> sessions</div>
+            <div class="pl-timer-sessions">Today: <strong>${state.pomodoro.sessions}</strong> &middot; Total: <strong>${state.pomodoro.total}</strong> sessions</div>
             <div class="pl-timer-presets">
-              <button class="pl-preset active" data-min="25">25m</button>
-              <button class="pl-preset" data-min="15">15m</button>
-              <button class="pl-preset" data-min="45">45m</button>
-              <button class="pl-preset" data-min="5">5m</button>
+              <button class="pl-preset" data-min="25" data-mode="Focus">25m</button>
+              <button class="pl-preset" data-min="15" data-mode="Break">15m</button>
+              <button class="pl-preset" data-min="45" data-mode="Focus">45m</button>
+              <button class="pl-preset" data-min="5" data-mode="Break">5m</button>
             </div>
           </div>
         </div>
@@ -687,27 +732,14 @@
         </div>
       `;
 
-      // Wire up pomodoro timer
-      requestAnimationFrame(() => wirePomodoro(inner));
-
-      // Wire up suggested topics
       requestAnimationFrame(() => {
         inner.querySelectorAll('.pl-suggest').forEach(el => {
           el.addEventListener('click', () => navigate('topic', el.dataset.topicId));
         });
-        // Preset buttons
         inner.querySelectorAll('.pl-preset').forEach(btn => {
-          btn.addEventListener('click', () => {
-            if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-            timerRunning = false;
-            const min = parseInt(btn.dataset.min);
-            timerSeconds = min * 60;
-            timerMode = min <= 10 ? 'Break' : 'Focus';
-            inner.querySelectorAll('.pl-preset').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            updateTimerDisplay(inner);
-          });
+          btn.addEventListener('click', () => startPreset(parseInt(btn.dataset.min, 10), btn.dataset.mode));
         });
+        wirePomodoro(inner);
       });
     } catch (e) {
       inner.innerHTML = '<div class="empty"><p>Could not load planner.</p></div>';
@@ -722,9 +754,71 @@
   let timerInterval = null;
 
   function formatTime(sec) {
+    sec = Math.max(0, Math.floor(sec));
     const m = Math.floor(sec / 60);
     const s = sec % 60;
     return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+
+  function currentTimerSeconds() {
+    if (timerRunning && state.pomodoro.endTs) {
+      return Math.max(0, Math.round((state.pomodoro.endTs - Date.now()) / 1000));
+    }
+    if (timerSeconds > 0) return timerSeconds;
+    return (timerMode === 'Break' ? state.pomodoro.breakMin : state.pomodoro.focusMin) * 60;
+  }
+
+  function presetSeconds(min, mode) {
+    return min * 60;
+  }
+
+  function startPreset(min, mode) {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    timerMode = mode || (min <= 10 ? 'Break' : 'Focus');
+    state.pomodoro.mode = timerMode;
+    timerSeconds = presetSeconds(min, timerMode);
+    if (timerMode === 'Focus') state.pomodoro.focusMin = min; else state.pomodoro.breakMin = min;
+    timerRunning = true;
+    startTimerTick();
+  }
+
+  function startTimerTick() {
+    state.pomodoro.endTs = Date.now() + timerSeconds * 1000;
+    state.pomodoro.running = true;
+    saveState();
+    const container = document.querySelector('#view .pl-card');
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    timerInterval = setInterval(() => {
+      const remaining = Math.round((state.pomodoro.endTs - Date.now()) / 1000);
+      timerSeconds = Math.max(0, remaining);
+      updateTimerDisplay(null);
+      if (remaining <= 0) completeTimerPhase();
+    }, 250);
+    updateTimerDisplay(null);
+  }
+
+  function completeTimerPhase() {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    timerRunning = false;
+    state.pomodoro.running = false;
+    state.pomodoro.endTs = 0;
+    if (timerMode === 'Focus') {
+      state.pomodoro.sessions++;
+      state.pomodoro.total++;
+      saveState();
+      timerMode = 'Break';
+      state.pomodoro.mode = 'Break';
+      timerSeconds = state.pomodoro.breakMin * 60;
+      sfxCelebrate();
+      toast('Focus session done — take a break!');
+    } else {
+      timerMode = 'Focus';
+      state.pomodoro.mode = 'Focus';
+      timerSeconds = state.pomodoro.focusMin * 60;
+      toast('Break over — back to focus!');
+    }
+    saveState();
+    updateTimerDisplay(null);
   }
 
   function wirePomodoro(container) {
@@ -732,72 +826,59 @@
     const modeEl = container.querySelector('#plTimerMode');
     const startBtn = container.querySelector('#plTimerStart');
     const resetBtn = container.querySelector('#plTimerReset');
-
     if (!display || !startBtn) return;
 
-    const updateView = () => {
-      display.textContent = formatTime(timerSeconds);
-      modeEl.textContent = timerMode;
-      startBtn.textContent = timerRunning ? 'Pause' : (timerSeconds > 0 ? 'Start' : 'Restart');
-    };
+    // Resume a running timer after navigating back to the planner
+    if (state.pomodoro.running && state.pomodoro.endTs) {
+      timerSeconds = Math.max(0, Math.round((state.pomodoro.endTs - Date.now()) / 1000));
+      timerMode = state.pomodoro.mode || 'Focus';
+      if (timerSeconds > 0) {
+        if (!timerRunning) timerRunning = true;
+        startTimerTick();
+      } else {
+        completeTimerPhase();
+      }
+    }
 
     startBtn.onclick = () => {
       if (timerRunning) {
-        clearInterval(timerInterval);
-        timerInterval = null;
         timerRunning = false;
-        updateView();
+        state.pomodoro.running = false;
+        if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+        // Persist remaining seconds so it can resume later
+        state.pomodoro.endTs = Date.now() + timerSeconds * 1000;
+        saveState();
+        updateTimerDisplay(container);
         return;
       }
-      if (timerSeconds <= 0) {
-        timerSeconds = (timerMode === 'Break' ? state.pomodoro.breakMin : state.pomodoro.focusMin) * 60;
-      }
+      if (timerSeconds <= 0) timerSeconds = (timerMode === 'Break' ? state.pomodoro.breakMin : state.pomodoro.focusMin) * 60;
       timerRunning = true;
-      updateView();
-      timerInterval = setInterval(() => {
-        timerSeconds--;
-        updateView();
-        if (timerSeconds <= 0) {
-          clearInterval(timerInterval);
-          timerInterval = null;
-          timerRunning = false;
-          // Session complete
-          if (timerMode === 'Focus') {
-            state.pomodoro.sessions++;
-            saveState();
-            timerMode = 'Break';
-            timerSeconds = state.pomodoro.breakMin * 60;
-            sfxCelebrate();
-          } else {
-            timerMode = 'Focus';
-            timerSeconds = state.pomodoro.focusMin * 60;
-          }
-          updateView();
-          container.querySelectorAll('.pl-preset').forEach(b => b.classList.remove('active'));
-        }
-      }, 1000);
+      startTimerTick();
     };
 
     resetBtn.onclick = () => {
       if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
       timerRunning = false;
+      state.pomodoro.running = false;
+      state.pomodoro.endTs = 0;
       timerMode = 'Focus';
+      state.pomodoro.mode = 'Focus';
       timerSeconds = state.pomodoro.focusMin * 60;
-      container.querySelectorAll('.pl-preset').forEach(b => b.classList.remove('active'));
-      container.querySelector('.pl-preset[data-min="25"]')?.classList.add('active');
-      updateView();
+      saveState();
+      updateTimerDisplay(container);
     };
 
-    updateView();
+    updateTimerDisplay(container);
   }
 
   function updateTimerDisplay(container) {
-    const display = container.querySelector('#plTimerDisplay');
-    const modeEl = container.querySelector('#plTimerMode');
-    const startBtn = container.querySelector('#plTimerStart');
-    if (display) display.textContent = formatTime(timerSeconds);
+    const viewEl = document.querySelector('#view');
+    const display = (container || viewEl)?.querySelector('#plTimerDisplay');
+    const modeEl = (container || viewEl)?.querySelector('#plTimerMode');
+    const startBtn = (container || viewEl)?.querySelector('#plTimerStart');
+    if (display) display.textContent = formatTime(currentTimerSeconds());
     if (modeEl) modeEl.textContent = timerMode;
-    if (startBtn) startBtn.textContent = timerRunning ? 'Pause' : (timerSeconds > 0 ? 'Start' : 'Restart');
+    if (startBtn) startBtn.textContent = timerRunning ? 'Pause' : (currentTimerSeconds() > 0 ? 'Start' : 'Restart');
   }
 
   function viewBookmarks() {
@@ -951,6 +1032,31 @@
       </div>
 
       <div class="set-group">
+        <div class="set-group-title">Study Plan</div>
+        <div class="set-row">
+          <div class="set-info">
+            <div class="lbl">Exam Date</div>
+            <div class="desc">Drives your countdown &amp; weekly targets</div>
+          </div>
+          <input type="date" class="set-input" id="examDateInput" value="${state.examDate || ''}" max="2100-12-31" />
+        </div>
+        <div class="set-row" style="border-color:transparent">
+          <div class="set-info">
+            <div class="lbl">Planning Horizon</div>
+            <div class="desc">Weeks of study left (used if no exam date)</div>
+          </div>
+          <input type="number" class="set-input narrow" id="planWeeksInput" value="${state.planWeeksAhead}" min="1" max="104" />
+        </div>
+        <div class="set-row" style="border-color:transparent">
+          <div class="set-info">
+            <div class="lbl">Study Days / Week</div>
+            <div class="desc">Used to compute daily targets</div>
+          </div>
+          <input type="number" class="set-input narrow" id="studyDaysInput" value="${state.studyDays || 5}" min="1" max="7" />
+        </div>
+      </div>
+
+      <div class="set-group">
         <div class="set-group-title">Cloud Account</div>
         ${isCloudConnected() ? html`
           <div class="set-row">
@@ -1065,6 +1171,26 @@
           const url = card.dataset.url;
           if (url) window.open(url, '_blank', 'noopener');
         });
+      });
+      const examInput = inner.querySelector('#examDateInput');
+      if (examInput) examInput.addEventListener('change', () => {
+        state.examDate = examInput.value;
+        saveState();
+        toast(state.examDate ? 'Exam date set' : 'Exam date cleared');
+      });
+      const weeksInput = inner.querySelector('#planWeeksInput');
+      if (weeksInput) weeksInput.addEventListener('change', () => {
+        const v = parseInt(weeksInput.value, 10);
+        state.planWeeksAhead = (isNaN(v) || v < 1) ? 1 : Math.min(v, 104);
+        weeksInput.value = state.planWeeksAhead;
+        saveState();
+      });
+      const daysInput = inner.querySelector('#studyDaysInput');
+      if (daysInput) daysInput.addEventListener('change', () => {
+        const v = parseInt(daysInput.value, 10);
+        state.studyDays = (isNaN(v) || v < 1) ? 1 : Math.min(v, 7);
+        daysInput.value = state.studyDays;
+        saveState();
       });
     });
 
@@ -1252,7 +1378,35 @@
 
   /* ── Cloud sync (GitHub) ─────────────────────────────────── */
   const GITHUB_API = 'https://api.github.com';
-  const GITHUB_DATA_PATH = 'userdata/data.json';
+  const GITHUB_DATA_PATH = 'anesthetick-data.json';
+  const GITHUB_REPO = 'anesthetick';
+
+  function cloudPayload() {
+    return {
+      progress: state.progress,
+      bookmarks: state.bookmarks,
+      subBookmarks: state.subBookmarks,
+      customSubs: state.customSubs,
+      topicNotes: state.topicNotes,
+      pomodoro: { total: state.pomodoro.total, sessions: state.pomodoro.sessions },
+      examDate: state.examDate,
+      planWeeksAhead: state.planWeeksAhead
+    };
+  }
+
+  function applyCloudData(data) {
+    if (!data || typeof data !== 'object') return false;
+    let changed = false;
+    if (data.progress) { state.progress = data.progress; changed = true; }
+    if (data.bookmarks) { state.bookmarks = data.bookmarks; changed = true; }
+    if (data.subBookmarks) { state.subBookmarks = data.subBookmarks; changed = true; }
+    if (data.customSubs) { state.customSubs = data.customSubs; changed = true; }
+    if (data.topicNotes) { state.topicNotes = data.topicNotes; changed = true; }
+    if (data.pomodoro && typeof data.pomodoro.total === 'number') { state.pomodoro.total = data.pomodoro.total; changed = true; }
+    if (typeof data.examDate === 'string') { state.examDate = data.examDate; changed = true; }
+    if (typeof data.planWeeksAhead === 'number') { state.planWeeksAhead = data.planWeeksAhead; changed = true; }
+    return changed;
+  }
 
   function isCloudConnected() {
     return !!(state.githubUser && state.githubPin);
@@ -1271,16 +1425,16 @@
 
   async function getRepoContent(path) {
     const auth = getGithubAuth();
-    const url = GITHUB_API + '/repos/' + state.githubUser + '/anesthetick/contents/' + path;
+    const url = GITHUB_API + '/repos/' + state.githubUser + '/' + GITHUB_REPO + '/contents/' + path;
     const res = await fetch(url, { headers: { Authorization: 'Basic ' + auth } });
-    if (!res.ok) return null;
-    const json = await res.json();
-    return json;
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error('Cloud read error (' + res.status + ')');
+    return await res.json();
   }
 
   async function putRepoContent(path, content, sha) {
     const auth = getGithubAuth();
-    const url = GITHUB_API + '/repos/' + state.githubUser + '/anesthetick/contents/' + path;
+    const url = GITHUB_API + '/repos/' + state.githubUser + '/' + GITHUB_REPO + '/contents/' + path;
     const body = { message: 'sync anesthetick data', content: btoa(unescape(encodeURIComponent(JSON.stringify(content)))) };
     if (sha) body.sha = sha;
     const res = await fetch(url, {
@@ -1293,24 +1447,28 @@
 
   async function ensureRepo() {
     const auth = getGithubAuth();
-    // Check if repo exists
-    const check = await fetch(GITHUB_API + '/repos/' + state.githubUser + '/anesthetick', {
+    const check = await fetch(GITHUB_API + '/repos/' + state.githubUser + '/' + GITHUB_REPO, {
       headers: { Authorization: 'Basic ' + auth }
     });
     if (check.ok) return;
-    // Create repo
     const res = await fetch(GITHUB_API + '/user/repos', {
       method: 'POST',
       headers: { Authorization: 'Basic ' + auth, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: 'anesthetick', description: 'Anesthetick study sync', private: false, auto_init: true })
+      body: JSON.stringify({ name: GITHUB_REPO, description: 'Anesthetick study sync', private: false, auto_init: true })
     });
     if (res.status === 422) return; // already exists
     if (!res.ok) {
       const msg = await res.json().catch(() => ({}));
-      throw new Error('Cannot create repo. Create a repo called "anesthetick" on GitHub, or ensure your PAT has the "repo" scope. (' + (msg.message || res.status) + ')');
+      throw new Error('Cannot create repo. Create a repo called "' + GITHUB_REPO + '" on GitHub, or ensure your PAT has the "repo" scope. (' + (msg.message || res.status) + ')');
     }
-    // Wait for repo to be ready
-    await new Promise(r => setTimeout(r, 2000));
+    // Wait for repo + default branch to be ready before writing
+    for (let i = 0; i < 5; i++) {
+      await new Promise(r => setTimeout(r, 1000));
+      const recheck = await fetch(GITHUB_API + '/repos/' + state.githubUser + '/' + GITHUB_REPO, {
+        headers: { Authorization: 'Basic ' + auth }
+      });
+      if (recheck.ok) return;
+    }
   }
 
   async function syncToGithub(data) {
@@ -1319,7 +1477,7 @@
     const existing = await getRepoContent(GITHUB_DATA_PATH);
     const sha = existing ? existing.sha : null;
     const res = await putRepoContent(GITHUB_DATA_PATH, data, sha);
-    if (res.status === 404) throw new Error('Repo "anesthetick" not found. Create it on GitHub and try again.');
+    if (res.status === 404) throw new Error('Repo "' + GITHUB_REPO + '" not found. Create it on GitHub and try again.');
     if (!res.ok) {
       const msg = await res.json().catch(() => ({}));
       throw new Error('Save failed: ' + (msg.message || res.status));
@@ -1330,7 +1488,7 @@
   async function syncFromGithub() {
     if (!isCloudConnected()) throw new Error('Not connected');
     const existing = await getRepoContent(GITHUB_DATA_PATH);
-    if (!existing) throw new Error('No data found on cloud');
+    if (!existing || !existing.content) throw new Error('No data found on cloud');
     const content = decodeURIComponent(escape(atob(existing.content)));
     return JSON.parse(content);
   }
@@ -1341,15 +1499,7 @@
     state.githubPin = pass;
     saveState();
     await ensureRepo();
-    // Create initial data file
-    const data = {
-      progress: state.progress,
-      bookmarks: state.bookmarks,
-      subBookmarks: state.subBookmarks,
-      customSubs: state.customSubs,
-      topicNotes: state.topicNotes
-    };
-    await syncToGithub(data);
+    await syncToGithub(cloudPayload());
     toast('Registered as ' + login);
     navigate('home');
   }
@@ -1359,19 +1509,22 @@
     state.githubUser = user;
     state.githubPin = pass;
     saveState();
-    // Load remote data (if fails, just continue with local)
+    let loaded = false;
     try {
       const data = await syncFromGithub();
-      if (data.progress) state.progress = data.progress;
-      if (data.bookmarks) state.bookmarks = data.bookmarks;
-      if (data.subBookmarks) state.subBookmarks = data.subBookmarks;
-      if (data.customSubs) state.customSubs = data.customSubs;
-      if (data.topicNotes) state.topicNotes = data.topicNotes;
+      loaded = applyCloudData(data);
       saveState();
-    } catch (_) {
-      // No remote data yet — start fresh
+    } catch (err) {
+      // No remote data yet — start fresh but tell the user
+      if (err.message && err.message.indexOf('No data found') !== -1) {
+        toast('Welcome ' + login + ' — no saved data on cloud yet');
+      } else {
+        toast('Welcome ' + login + ' — could not load cloud data');
+      }
+      navigate('home');
+      return;
     }
-    toast('Welcome back ' + login);
+    toast('Welcome back ' + login + (loaded ? ' — data loaded' : ''));
     navigate('home');
   }
 
@@ -1385,18 +1538,18 @@
 
   // Auto-sync when data changes (debounced)
   let autoSyncTimer;
+  let lastAutoSyncError = 0;
   function triggerAutoSync() {
     if (!isCloudConnected()) return;
     clearTimeout(autoSyncTimer);
     autoSyncTimer = setTimeout(() => {
-      const data = {
-        progress: state.progress,
-        bookmarks: state.bookmarks,
-        subBookmarks: state.subBookmarks,
-        customSubs: state.customSubs,
-        topicNotes: state.topicNotes
-      };
-      syncToGithub(data).catch(() => {});
+      syncToGithub(cloudPayload()).then(() => { lastAutoSyncError = 0; }).catch(err => {
+        const now = Date.now();
+        if (now - lastAutoSyncError > 60000) {
+          toast('Auto-sync failed: ' + err.message);
+          lastAutoSyncError = now;
+        }
+      });
     }, 5000);
   }
 
@@ -1404,17 +1557,10 @@
   function tryAutoLogin() {
     if (!isCloudConnected()) return;
     testCloudConnection(state.githubUser, state.githubPin).then(login => {
-      toast('Cloud: connected as ' + login);
-      // Load remote data (silent merge)
+      // Load remote data (merge) on app start
       syncFromGithub().then(data => {
-        let changed = false;
-        if (data.progress) { state.progress = data.progress; changed = true; }
-        if (data.bookmarks) { state.bookmarks = data.bookmarks; changed = true; }
-        if (data.subBookmarks) { state.subBookmarks = data.subBookmarks; changed = true; }
-        if (data.customSubs) { state.customSubs = data.customSubs; changed = true; }
-        if (data.topicNotes) { state.topicNotes = data.topicNotes; changed = true; }
-        if (changed) saveState();
-        updatePlannerPct?.();
+        const changed = applyCloudData(data);
+        if (changed) { saveState(); updatePlannerPct?.(); }
       }).catch(() => {});
     }).catch(() => {
       // Credentials invalid — clear them
@@ -1754,14 +1900,7 @@
       }
       if (action === 'cloud-sync') {
         toast('Saving…');
-        const data = {
-          progress: state.progress,
-          bookmarks: state.bookmarks,
-          subBookmarks: state.subBookmarks,
-          customSubs: state.customSubs,
-          topicNotes: state.topicNotes
-        };
-        syncToGithub(data).then(() => toast('Saved to cloud')).catch(err => toast('Save failed: ' + err.message));
+        syncToGithub(cloudPayload()).then(() => toast('Saved to cloud')).catch(err => toast('Save failed: ' + err.message));
         return;
       }
       if (action === 'cloud-check') {
@@ -2096,6 +2235,20 @@
   }
 
   /* ── init ───────────────────────────────────────────────── */
+  (function initTimerFromState() {
+    if (state.pomodoro) {
+      timerMode = state.pomodoro.mode || 'Focus';
+      const dur = (timerMode === 'Break' ? state.pomodoro.breakMin : state.pomodoro.focusMin) * 60;
+      if (state.pomodoro.running && state.pomodoro.endTs) {
+        const rem = Math.round((state.pomodoro.endTs - Date.now()) / 1000);
+        if (rem > 0) { timerSeconds = rem; timerRunning = true; }
+        else { timerSeconds = dur; state.pomodoro.running = false; state.pomodoro.endTs = 0; }
+      } else {
+        timerSeconds = dur;
+      }
+    }
+  })();
+
   navigate('home');
   tryAutoLogin();
 })();
