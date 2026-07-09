@@ -1571,10 +1571,12 @@
       const res = await putRepoContent(GITHUB_DATA_PATH, data, sha);
       if (res.ok) return true;
       let msg = '';
+      let rawBody = '';
       try {
-        const t = await res.text();
-        try { msg = (JSON.parse(t).message) || t.slice(0, 120); } catch (_) { msg = t.slice(0, 120); }
+        rawBody = await res.text();
+        try { msg = (JSON.parse(rawBody).message) || rawBody.slice(0, 200); } catch (_) { msg = rawBody.slice(0, 200); }
       } catch (_) {}
+      if (attempt === 0) console.error('[anesthetick] GitHub PUT status', res.status, 'body:', rawBody.slice(0, 300));
       // Transient GitHub errors (5xx, rate limit, outage HTML) — retry
       const transient = res.status === 0 || res.status >= 500 || /rate limit/i.test(msg) || /<!DOCTYPE/i.test(msg);
       if (transient && attempt < 7) {
@@ -1607,7 +1609,12 @@
     if (!isCloudConnected()) throw new Error('Not connected');
     const existing = await getRepoContent(GITHUB_DATA_PATH);
     if (!existing || !existing.content) throw new Error('No data found on cloud');
-    const content = decodeURIComponent(escape(atob(existing.content)));
+    let content;
+    try {
+      content = decodeURIComponent(escape(atob(existing.content)));
+    } catch (e) {
+      throw new Error('Cloud data is not valid base64 (repo contents may be corrupted).');
+    }
     try {
       return JSON.parse(content);
     } catch (e) {
