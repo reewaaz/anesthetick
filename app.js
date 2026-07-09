@@ -1469,17 +1469,25 @@
     // Cache-busting query defeats GitHub's CDN caching of the Contents API GET,
     // which otherwise returns a stale `sha` right after a write and causes 422 "does not match".
     const url = GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO + '/contents/' + path + '?ts=' + Date.now();
-    const res = await fetch(url, {
-      headers: { Authorization: 'Basic ' + auth, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
-      cache: 'no-store'
-    });
-    if (res.status === 404) return null;
-    if (!res.ok) {
+    let lastErr;
+    for (let i = 0; i < 4; i++) {
+      const res = await fetch(url, {
+        headers: { Authorization: 'Basic ' + auth, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+        cache: 'no-store'
+      });
+      if (res.status === 404) return null;
+      if (res.ok) return await res.json().catch(() => null);
+      // 5xx / 502 / 503 are transient — retry with backoff
+      if (res.status >= 500) {
+        lastErr = new Error('Cloud read error (' + res.status + ') — retrying…');
+        await new Promise(r => setTimeout(r, 800 * (i + 1)));
+        continue;
+      }
       const t = await res.text().catch(() => '');
       if (/<!DOCTYPE/i.test(t)) throw new Error('GitHub is unreachable right now (rate limit or outage). Try again shortly.');
       throw new Error('Cloud read error (' + res.status + ')');
     }
-    return await res.json().catch(() => null);
+    throw lastErr || new Error('Cloud read failed after retries');
   }
 
   function safeStringify(v) {
@@ -1566,7 +1574,18 @@
       await ensureRepo();
       let lastErr;
       for (let attempt = 0; attempt < 8; attempt++) {
-        const existing = await getRepoContent(GITHUB_DATA_PATH);
+        let existing;
+        try {
+          existing = await getRepoContent(GITHUB_DATA_PATH);
+        } catch (readErr) {
+          // Read failed (e.g. 502) — treat as transient and retry
+          if (attempt < 7) {
+            lastErr = new Error('Cloud read error — retrying… (' + (attempt + 1) + ')');
+            await new Promise(r => setTimeout(r, 1000 * Math.pow(1.6, attempt)));
+            continue;
+          }
+          throw readErr;
+        }
       const sha = existing ? existing.sha : null;
       const res = await putRepoContent(GITHUB_DATA_PATH, data, sha);
       if (res.ok) return true;
