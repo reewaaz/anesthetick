@@ -1461,8 +1461,13 @@
 
   async function getRepoContent(path) {
     const auth = getGithubAuth();
-    const url = GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO + '/contents/' + path;
-    const res = await fetch(url, { headers: { Authorization: 'Basic ' + auth } });
+    // Cache-busting query defeats GitHub's CDN caching of the Contents API GET,
+    // which otherwise returns a stale `sha` right after a write and causes 422 "does not match".
+    const url = GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO + '/contents/' + path + '?ts=' + Date.now();
+    const res = await fetch(url, {
+      headers: { Authorization: 'Basic ' + auth, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+      cache: 'no-store'
+    });
     if (res.status === 404) return null;
     if (!res.ok) throw new Error('Cloud read error (' + res.status + ')');
     return await res.json();
@@ -1551,7 +1556,7 @@
     syncInFlight = (async () => {
       await ensureRepo();
       let lastErr;
-      for (let attempt = 0; attempt < 5; attempt++) {
+      for (let attempt = 0; attempt < 8; attempt++) {
         const existing = await getRepoContent(GITHUB_DATA_PATH);
       const sha = existing ? existing.sha : null;
       const res = await putRepoContent(GITHUB_DATA_PATH, data, sha);
@@ -1561,11 +1566,11 @@
         const t = await res.text();
         try { msg = (JSON.parse(t).message) || t.slice(0, 120); } catch (_) { msg = t.slice(0, 120); }
       } catch (_) {}
-      // 409/422 "sha does not match" / conflict — the file changed remotely; re-read and retry
+      // 409/422 "sha does not match" / conflict — file changed remotely (or GET was cached); re-read fresh sha and retry
       const conflict = res.status === 409 || res.status === 422 || /does not match/i.test(msg) || /branch was modified/i.test(msg);
-      if (conflict && attempt < 4) {
-        lastErr = new Error('Sync conflict — retrying…');
-        await new Promise(r => setTimeout(r, 800));
+      if (conflict && attempt < 7) {
+        lastErr = new Error('Sync conflict — retrying… (' + (attempt + 1) + ')');
+        await new Promise(r => setTimeout(r, 1000 * Math.pow(1.6, attempt)));
         continue;
       }
       if (res.status === 404 && attempt < 2) {
