@@ -1450,39 +1450,65 @@
     const check = await fetch(GITHUB_API + '/repos/' + state.githubUser + '/' + GITHUB_REPO, {
       headers: { Authorization: 'Basic ' + auth }
     });
-    if (check.ok) return;
+    if (check.ok) {
+      // Make sure the default branch actually exists (auto_init is async)
+      const repo = await check.json().catch(() => null);
+      const branch = repo && repo.default_branch ? repo.default_branch : 'main';
+      const ref = await fetch(GITHUB_API + '/repos/' + state.githubUser + '/' + GITHUB_REPO + '/git/refs/heads/' + branch, {
+        headers: { Authorization: 'Basic ' + auth }
+      });
+      if (ref.ok) return;
+    }
     const res = await fetch(GITHUB_API + '/user/repos', {
       method: 'POST',
       headers: { Authorization: 'Basic ' + auth, 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: GITHUB_REPO, description: 'Anesthetick study sync', private: false, auto_init: true })
     });
-    if (res.status === 422) return; // already exists
+    if (res.status === 422) {
+      // Repo exists but we couldn't read it above — likely a scope/permission issue
+      const err = await res.json().catch(() => ({}));
+      throw new Error('Repo "' + GITHUB_REPO + '" already exists but is not accessible. ' + (err.message || 'Ensure your PAT has the "repo" scope.'));
+    }
     if (!res.ok) {
       const msg = await res.json().catch(() => ({}));
       throw new Error('Cannot create repo. Create a repo called "' + GITHUB_REPO + '" on GitHub, or ensure your PAT has the "repo" scope. (' + (msg.message || res.status) + ')');
     }
     // Wait for repo + default branch to be ready before writing
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) {
       await new Promise(r => setTimeout(r, 1000));
-      const recheck = await fetch(GITHUB_API + '/repos/' + state.githubUser + '/' + GITHUB_REPO, {
+      const recheck = await fetch(GITHUB_API + '/repos/' + state.githubUser + '/' + GITHUB_REPO + '/git/refs/heads/main', {
         headers: { Authorization: 'Basic ' + auth }
       });
       if (recheck.ok) return;
+      const recheck2 = await fetch(GITHUB_API + '/repos/' + state.githubUser + '/' + GITHUB_REPO + '/git/refs/heads/master', {
+        headers: { Authorization: 'Basic ' + auth }
+      });
+      if (recheck2.ok) return;
     }
   }
 
   async function syncToGithub(data) {
-    if (!isCloudConnected()) throw new Error('Not connected');
+    if (!isCloudConnected()) throw new Error('Not connected — log in first');
     await ensureRepo();
-    const existing = await getRepoContent(GITHUB_DATA_PATH);
-    const sha = existing ? existing.sha : null;
-    const res = await putRepoContent(GITHUB_DATA_PATH, data, sha);
-    if (res.status === 404) throw new Error('Repo "' + GITHUB_REPO + '" not found. Create it on GitHub and try again.');
-    if (!res.ok) {
-      const msg = await res.json().catch(() => ({}));
-      throw new Error('Save failed: ' + (msg.message || res.status));
+    let lastErr;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const existing = await getRepoContent(GITHUB_DATA_PATH);
+      const sha = existing ? existing.sha : null;
+      const res = await putRepoContent(GITHUB_DATA_PATH, data, sha);
+      if (res.ok) return true;
+      let msg = '';
+      try { msg = (await res.json()).message || ''; } catch (_) {}
+      if (res.status === 404 && attempt < 2) {
+        // Repo/branch may still be initializing — wait and retry
+        lastErr = new Error('Repo not ready yet — retrying…');
+        await new Promise(r => setTimeout(r, 1500));
+        continue;
+      }
+      if (res.status === 403) throw new Error('GitHub rejected the save (403). Your PAT likely lacks the "repo" scope, or the repo is private without access.');
+      if (res.status === 404) throw new Error('Repo "' + GITHUB_REPO + '" not found. Create it on GitHub and try again.');
+      throw new Error('Save failed: ' + (msg || res.status));
     }
-    return true;
+    throw lastErr || new Error('Save failed after retries');
   }
 
   async function syncFromGithub() {
@@ -1587,8 +1613,8 @@
           <input type="text" id="authUser" placeholder="GitHub username" autocomplete="username" />
           <input type="password" id="authPass" placeholder="Personal Access Token" autocomplete="current-password" />
           <p class="auth-hint">${mode === 'register'
-            ? '<a href="https://github.com/settings/tokens/new?description=anesthetick&scopes=repo" target="_blank" rel="noopener" style="color:var(--accent)">Create a token on GitHub &rarr;</a><br><span style="font-size:11px;color:var(--muted)">Requires a GitHub account and a classic token with repo scope.</span>'
-            : 'Enter the same credentials you used to register.'}</p>
+            ? '<a href="https://github.com/settings/tokens/new?description=anesthetick&scopes=repo" target="_blank" rel="noopener" style="color:var(--accent)">Create a token on GitHub &rarr;</a><br><span style="font-size:11px;color:var(--muted)">Use a <strong>classic</strong> token with the <strong>repo</strong> scope (fine-grained tokens need Contents read/write on the &ldquo;anesthetick&rdquo; repo). The token is stored on this device only.</span>'
+            : 'Enter the same GitHub username and PAT you used to register.'}</p>
         </div>
         <div class="dialog-actions" style="justify-content:stretch">
           <button class="btn-ghost" data-dlg="cancel" style="flex:1">Cancel</button>
@@ -1900,7 +1926,7 @@
       }
       if (action === 'cloud-sync') {
         toast('Saving…');
-        syncToGithub(cloudPayload()).then(() => toast('Saved to cloud')).catch(err => toast('Save failed: ' + err.message));
+        syncToGithub(cloudPayload()).then(() => toast('Saved to cloud')).catch(err => { console.error('[anesthetick] save failed:', err); toast('Save failed: ' + err.message); });
         return;
       }
       if (action === 'cloud-check') {
