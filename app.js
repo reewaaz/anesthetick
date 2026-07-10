@@ -242,6 +242,8 @@
     chevron: '<svg viewBox="0 0 24 24" class="ic chev" style="width:18px;height:18px"><path d="M9 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     blank: '<svg viewBox="0 0 24 24" class="ic"></svg>',
     external: '<svg viewBox="0 0 24 24" class="ic" style="width:14px;height:14px"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    play: '<svg viewBox="0 0 24 24" class="ic" style="width:14px;height:14px"><path d="M5 3l14 9-14 9z" fill="currentColor"/></svg>',
+    book: '<svg viewBox="0 0 24 24" class="ic" style="width:14px;height:14px"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20V3H6.5A2.5 2.5 0 0 0 4 5.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
     moon: '<svg viewBox="0 0 24 24" class="ic" style="width:16px;height:16px"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" fill="currentColor"/></svg>',
     sun: '<svg viewBox="0 0 24 24" class="ic" style="width:16px;height:16px"><circle cx="12" cy="12" r="5" fill="currentColor"/><path d="M12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
     link: '<svg viewBox="0 0 24 24" class="ic link-icon"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.5 1.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.5-1.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
@@ -338,15 +340,23 @@
   function renderSubItem(sub, idx, topic, catId, secId, isCustom) {
     const u = uid(catId, secId, topic.id, idx + (isCustom ? 1000 : 0));
     const done = isDone(u);
-    const subLinks = topic.subLinks && topic.subLinks[idx] ? topic.subLinks[idx] : null;
+    const isObj = sub && typeof sub === 'object';
+    const text = isObj ? (sub.t || '') : (sub || '');
     const sb = isSubBookmarked(u);
     const customAttr = isCustom ? ' data-custom="1"' : '';
+    const refs = isObj && Array.isArray(sub.r) ? sub.r : (topic.refs || []);
+    const art = isObj ? articleLinkFor(sub) : null;
+    const vid = isObj ? videoLinkFor(sub) : null;
     return html`
       <div class="sub-item ${done ? 'done' : ''}" data-uid="${u}"${customAttr}>
         <div class="check">${ICONS.check}</div>
         <div class="sub-context">
-          <span class="s-name">${sub}</span>
-          ${subLinks ? html`<div class="sub-links">${subLinks.split(',').slice(0,2).map(sl => html`<a href="${sl.trim()}" target="_blank" rel="noopener">${ICONS.external} ${linkLabel(sl.trim())}</a>`).join('')}</div>` : ''}
+          <span class="s-name">${text}</span>
+          <div class="sub-res">
+            ${refs.map(r => html`<a class="res-chip book" href="${bookLinkFor(r)}" target="_blank" rel="noopener" title="${bookTitle(r)}">${ICONS.book} ${r}</a>`).join('')}
+            ${art ? html`<a class="res-chip art" href="${art.href}" target="_blank" rel="noopener" title="${art.label} a relevant article">${ICONS.external} ${art.label}</a>` : ''}
+            ${vid ? html`<a class="res-chip vid" href="${vid.href}" target="_blank" rel="noopener" title="Supplementary video">${ICONS.play} ${vid.label}</a>` : ''}
+          </div>
         </div>
         <div class="sub-actions">
           ${isCustom ? html`<button class="sub-del" data-action="del-custom-sub" data-topic-id="${topic.id}" data-custom-idx="${idx}">✕</button>` : ''}
@@ -364,6 +374,54 @@
     } catch (_) {
       return url;
     }
+  }
+
+  // ── Reference resolution ──────────────────────────────────
+  const RS = (typeof window !== 'undefined') ? window : (typeof globalThis !== 'undefined' ? globalThis : {});
+  function hostOf(url) { try { return new URL(url).hostname.replace(/^www\./, ''); } catch { return ''; } }
+  function enc(s) { return encodeURIComponent(s || ''); }
+
+  // Resolve a curriculum ref code -> { code, base, chapter, entry, chTitle }
+  function resolveRef(code) {
+    let base = code, chapter = null;
+    const m = code.match(/^([A-Za-z& ]+?)\s+Ch\.([\d\-]+)$/);
+    if (m) { base = m[1].trim(); chapter = m[2]; }
+    let entry = (RS.REF_SOURCES && (RS.REF_SOURCES[code] || RS.REF_SOURCES[base])) || null;
+    if (!entry && code.indexOf('RCoA') === 0) entry = RS.REF_SOURCES && RS.REF_SOURCES['RCoA'];
+    const chTitle = (RS.CHAPTER_TITLES && (RS.CHAPTER_TITLES[code] || (chapter && RS.CHAPTER_TITLES[base + ':' + chapter]))) || null;
+    return { code, base, chapter, entry, chTitle };
+  }
+
+  // Where to READ a book chapter. Uses the publisher/source URL when available,
+  // otherwise a scoped search so it always resolves to a real result.
+  function bookLinkFor(r) {
+    const rr = resolveRef(r);
+    if (rr.entry && rr.entry.url) return rr.entry.url;
+    const q = [rr.entry ? rr.entry.label : r, rr.chapter ? ('chapter ' + rr.chapter + (rr.chTitle ? ' ' + rr.chTitle : '')) : '', 'anaesthesia'].filter(Boolean).join(' ');
+    return 'https://www.google.com/search?q=' + enc(q);
+  }
+  function bookTitle(r) {
+    const rr = resolveRef(r);
+    if (!rr.entry) return r;
+    let t = rr.entry.label;
+    if (rr.chTitle) t += ' — ' + rr.chTitle;
+    else if (rr.chapter) t += ' (Ch.' + rr.chapter + ')';
+    if (rr.entry.sub) t += ' · ' + rr.entry.sub;
+    return t;
+  }
+
+  // Where to READ an article for a sub-item. Trusted deep links used directly;
+  // untrusted ones routed to a site-scoped search to avoid 404s.
+  function articleLinkFor(sub) {
+    const text = (sub && sub.t) || '';
+    const a = sub && sub.a;
+    if (!a) return { href: 'https://pubmed.ncbi.nlm.nih.gov/?term=' + enc(text + ' anaesthesia'), label: 'PubMed' };
+    const h = hostOf(a);
+    if (RS.TRUSTED_EXACT && RS.TRUSTED_EXACT.indexOf(h) !== -1) return { href: a, label: 'Read' };
+    return { href: 'https://www.google.com/search?q=' + enc('site:' + h + ' ' + text), label: 'Read (search)' };
+  }
+  function videoLinkFor(sub) {
+    return { href: 'https://www.youtube.com/results?search_query=' + enc(((sub && sub.t) || '') + ' anaesthesia'), label: 'Video' };
   }
 
   function renderTopicLinks(topic) {
@@ -445,7 +503,7 @@
         <button class="bookmark-btn ${bm ? 'active' : ''}" data-action="bookmark" style="width:36px;height:36px">${bm ? ICONS['bookmark-filled'] : ICONS.bookmark}</button>
       </div>
       ${topic.refs ? html`
-        <div class="refs">${topic.refs.map(r => html`<span class="ref">${r}</span>`).join('')}</div>
+        <div class="refs">${topic.refs.map(r => html`<a class="ref" href="${bookLinkFor(r)}" target="_blank" rel="noopener" title="${bookTitle(r)}">${r}</a>`).join('')}</div>
       ` : ''}
       ${renderTopicLinks(topic)}
       ${allSubs.length ? html`
@@ -475,7 +533,7 @@
     const q = query.toLowerCase().trim();
     searchResults = q ? ALL_TOPICS.filter(t => {
       const nameMatch = t.name.toLowerCase().includes(q);
-      const subMatches = (t.sub || []).filter(s => s.toLowerCase().includes(q));
+      const subMatches = (t.sub || []).filter(s => ((typeof s === 'string' ? s : s.t) || '').toLowerCase().includes(q));
       const refMatches = (t.refs || []).some(r => r.toLowerCase().includes(q));
       if (nameMatch || refMatches) return true;
       if (subMatches.length > 0) {
@@ -485,7 +543,7 @@
       return false;
     }).map(t => {
       // Find the best matching subtopic for display
-      const matchSub = (t.sub || []).find(s => s.toLowerCase().includes(q));
+      const matchSub = (t.sub || []).find(s => ((typeof s === 'string' ? s : s.t) || '').toLowerCase().includes(q));
       return { ...t, _matchSub: matchSub || null };
     }) : [];
 
@@ -503,7 +561,7 @@
             <div class="r-cat">${r.catName} &middot; ${r.secName}</div>
             <div class="r-name">${highlightMatch(r.name, q)}</div>
             <div class="r-sub">${r.sub?.length ?? 0} items ${r.refs ? '&middot; ' + r.refs.join(', ') : ''}</div>
-            ${r._matchSub ? html`<div class="r-match">${highlightMatch(r._matchSub, q)}</div>` : ''}
+            ${r._matchSub ? html`<div class="r-match">${highlightMatch((r._matchSub && r._matchSub.t) || r._matchSub, q)}</div>` : ''}
           </div>
         `).join('')}
       `;
@@ -933,7 +991,7 @@
           const customSubs = getCustomSubs(topicId);
           const subText = customOffset
             ? (customSubs[actualIdx] || '(deleted)')
-            : ((topic.sub && topic.sub[actualIdx]) || '(deleted)');
+            : (((topic.sub && topic.sub[actualIdx] && topic.sub[actualIdx].t) || (topic.sub && topic.sub[actualIdx]) || '(deleted)'));
           const doneClass = isDone(uidStr) ? ' done' : '';
           const sb = isSubBookmarked(uidStr);
           htmlStr += '<div class="sub-item' + doneClass + '" data-uid="' + uidStr + '">';
