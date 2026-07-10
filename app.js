@@ -1717,13 +1717,22 @@
     if (!isCloudConnected()) throw new Error('Not connected — log in first');
     if (syncInFlight) return syncInFlight;
     syncInFlight = (async () => {
-      const contentB64 = encodePayload(data);
       await ensureRepo();
       for (let attempt = 0; attempt < 6; attempt++) {
         const existing = await readCloudFile(GITHUB_DATA_PATH).catch(e => { if (e.transient && attempt < 5) return 'RETRY'; throw e; });
         if (existing === 'RETRY') { await sleep(1200 * attempt); continue; }
+        // Merge remote changes into local state before pushing so no change is ever lost
+        if (existing && existing.content) {
+          try {
+            const text = decodeURIComponent(escape(atob(existing.content)));
+            const remote = JSON.parse(text);
+            mergeIntoState(remote);
+          } catch (_) {}
+        }
         const sha = existing ? existing.sha : null;
-        const res = await writeCloudFile(GITHUB_DATA_PATH, contentB64, sha);
+        // Rebuild payload from the now-merged state
+        const mergedContentB64 = encodePayload(cloudPayload());
+        const res = await writeCloudFile(GITHUB_DATA_PATH, mergedContentB64, sha);
         if (res.ok) {
           try { const body = await res.json(); if (body?.content?.sha) { state.cloudSha = body.content.sha; cloudLastPushTime = Date.now(); saveState({ silent: true }); } } catch (_) {}
           return true;
@@ -1838,7 +1847,8 @@
   let cloudLastPushTime = 0;
   let cloudPollTimer = null;
 
-  function mergeCloudData(remote) {
+  // Merge remote data into local state without re-rendering (used inside syncToGithub)
+  function mergeIntoState(remote) {
     let changed = false;
     if (remote.progress) {
       for (const key in remote.progress) {
@@ -1865,10 +1875,14 @@
     if (remote.examDate && !state.examDate) { state.examDate = remote.examDate; changed = true; }
     if (typeof remote.planWeeksAhead === 'number' && !state.planWeeksAhead) { state.planWeeksAhead = remote.planWeeksAhead; changed = true; }
     if (typeof remote.studyDays === 'number' && !state.studyDays) { state.studyDays = remote.studyDays; changed = true; }
-    if (changed) {
-      saveState({ silent: true });
-      if (state.view) navigate(state.view);
-    }
+    if (changed) saveState({ silent: true });
+    return changed;
+  }
+
+  // Same merge but also re-renders the current view (used by polling)
+  function mergeCloudData(remote) {
+    const changed = mergeIntoState(remote);
+    if (changed && state.view) navigate(state.view);
     return changed;
   }
 
@@ -1883,7 +1897,7 @@
       const text = decodeURIComponent(escape(atob(existing.content)));
       const remote = JSON.parse(text);
       if (mergeCloudData(remote)) {
-        toast('Synced updates from another browser');
+        toast('Synced from another browser');
       }
     } catch (_) {}
   }
@@ -1891,7 +1905,7 @@
   function startCloudPolling() {
     stopCloudPolling();
     pollCloudChanges();
-    cloudPollTimer = setInterval(pollCloudChanges, 10000);
+    cloudPollTimer = setInterval(pollCloudChanges, 5000);
   }
 
   function stopCloudPolling() {
