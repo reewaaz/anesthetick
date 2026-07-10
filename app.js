@@ -1505,31 +1505,28 @@
   }
 
   /* ── Confirm dialog ─────────────────────────────────────── */
-  function showConfirm(title, msg, confirmLabel, cancelLabel) {
-    return new Promise(resolve => {
-      const backdrop = document.createElement('div');
-      backdrop.className = 'dialog-backdrop';
-      const dlg = document.createElement('div');
-      dlg.className = 'dialog';
-      dlg.innerHTML = `
-        <h3>${title}</h3>
-        <p>${msg}</p>
-        <div class="dialog-actions">
-          <button class="btn-ghost" data-dlg="cancel">${cancelLabel || 'Cancel'}</button>
-          <button class="btn-primary" data-dlg="confirm">${confirmLabel || 'Confirm'}</button>
-        </div>`;
-      backdrop.appendChild(dlg);
-      document.body.appendChild(backdrop);
-      requestAnimationFrame(() => backdrop.classList.add('show'));
-      const close = result => {
-        backdrop.classList.remove('show');
-        setTimeout(() => backdrop.remove(), 300);
-        resolve(result);
-      };
-      backdrop.addEventListener('click', e => { if (e.target === backdrop) { haptic(8); close(false); } });
-      dlg.querySelector('[data-dlg="cancel"]').addEventListener('click', () => { haptic(8); close(false); });
-      dlg.querySelector('[data-dlg="confirm"]').addEventListener('click', () => { haptic(10); close(true); });
-    });
+  function showConfirm(title, msg, onConfirm, onCancel, confirmLabel, cancelLabel) {
+    const backdrop = document.createElement('div');
+    backdrop.className = 'dialog-backdrop';
+    const dlg = document.createElement('div');
+    dlg.className = 'dialog';
+    dlg.innerHTML = `
+      <h3>${title}</h3>
+      <p>${msg}</p>
+      <div class="dialog-actions">
+        <button class="btn-ghost" data-dlg="cancel">${cancelLabel || 'Cancel'}</button>
+        <button class="btn-primary" data-dlg="confirm">${confirmLabel || 'Confirm'}</button>
+      </div>`;
+    backdrop.appendChild(dlg);
+    document.body.appendChild(backdrop);
+    requestAnimationFrame(() => backdrop.classList.add('show'));
+    function close() {
+      backdrop.classList.remove('show');
+      setTimeout(() => backdrop.remove(), 300);
+    }
+    backdrop.addEventListener('click', e => { if (e.target === backdrop) { haptic(8); close(); if (onCancel) onCancel(); } });
+    dlg.querySelector('[data-dlg="cancel"]').addEventListener('click', () => { haptic(8); close(); if (onCancel) onCancel(); });
+    dlg.querySelector('[data-dlg="confirm"]').addEventListener('click', () => { haptic(10); close(); if (onConfirm) onConfirm(); });
   }
 
   /* ── Cloud sync (GitHub) ─────────────────────────────────── */
@@ -2289,9 +2286,7 @@
       }
       if (action === 'cloud-logout') {
         haptic(10);
-        showConfirm('Logout', 'Disconnect cloud account? Local data will be kept.', 'Logout', 'Cancel').then(ok => {
-          if (ok) cloudLogout();
-        });
+        showConfirm('Logout', 'Disconnect cloud account? Local data will be kept.', () => cloudLogout(), null, 'Logout', 'Cancel');
         return;
       }
       if (action === 'cloud-sync') {
@@ -2330,35 +2325,32 @@
     // Reset actions in settings
     if (action === 'reset-progress') {
       haptic(12);
-      showConfirm('Reset Progress', 'Clear all checkmarks? This cannot be undone.', 'Reset', 'Cancel').then(ok => {
-        if (!ok) return;
+      showConfirm('Reset Progress', 'Clear all checkmarks? This cannot be undone.', () => {
         state.progress = {};
         saveState();
         toast('Progress reset');
-      });
+      }, null, 'Reset', 'Cancel');
       return;
     }
     if (action === 'reset-bookmarks') {
       haptic(12);
-      showConfirm('Clear Bookmarks', 'Remove all saved topics and sub-items? This cannot be undone.', 'Clear', 'Cancel').then(ok => {
-        if (!ok) return;
+      showConfirm('Clear Bookmarks', 'Remove all saved topics and sub-items? This cannot be undone.', () => {
         state.bookmarks = [];
         state.subBookmarks = [];
         saveState();
         toast('Bookmarks cleared');
-      });
+      }, null, 'Clear', 'Cancel');
       return;
     }
     if (action === 'reset-all') {
       haptic(12);
-      showConfirm('Reset Everything', 'Wipe all local data including progress, bookmarks, notes, and theme? This cannot be undone.', 'Wipe', 'Cancel').then(ok => {
-        if (!ok) return;
+      showConfirm('Reset Everything', 'Wipe all local data including progress, bookmarks, notes, and theme? This cannot be undone.', () => {
         state = { progress: {}, bookmarks: [], subBookmarks: [], customSubs: {}, topicNotes: {}, githubUser: '', githubPin: '', githubScopes: '', cloudSha: '', installDismissed: false, theme: 'dark' };
         applyTheme('dark');
         saveState();
         toast('All data wiped');
         navigate('home');
-      });
+      }, null, 'Wipe', 'Cancel');
       return;
     }
 
@@ -2822,9 +2814,7 @@
   window.addEventListener('popstate', e => {
     const state = e.state;
     if (!state) {
-      showConfirm('Exit Anesthetick?', 'Your progress is saved locally on this device.', 'Exit', 'Stay').then(ok => {
-        if (!ok) history.pushState({ view: 'home' }, '');
-      });
+      showConfirm('Exit Anesthetick?', 'Your progress is saved locally on this device.', null, () => history.pushState({ view: 'home' }, ''), 'Exit', 'Stay');
       return;
     }
     navigateToState(state);
