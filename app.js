@@ -2099,8 +2099,10 @@
       const uidStr = target.dataset.subUid;
       if (uidStr) {
         toggleSubBookmark(uidStr);
-        target.classList.toggle('active', isSubBookmarked(uidStr));
-        toast(isSubBookmarked(uidStr) ? 'Sub-item saved' : 'Sub-item removed');
+        const now = isSubBookmarked(uidStr);
+        target.classList.toggle('active', now);
+        target.innerHTML = now ? ICONS['bookmark-filled'] : ICONS.bookmark;
+        toast(now ? 'Saved' : 'Removed');
       }
       return;
     }
@@ -2583,10 +2585,12 @@
     let g = null;
     function createUnderlay(el) {
       const r = el.getBoundingClientRect();
+      const app = document.getElementById('app');
+      const ar = app.getBoundingClientRect();
       const u = document.createElement('div');
       u.className = 'swipe-underlay';
-      u.style.cssText = `top:${r.top}px;left:${r.left}px;width:${r.width}px;height:${r.height}px;`;
-      document.body.appendChild(u);
+      u.style.cssText = `top:${r.top - ar.top - app.scrollTop}px;left:${r.left - ar.left - app.scrollLeft}px;width:${r.width}px;height:${r.height}px;`;
+      app.appendChild(u);
       return u;
     }
     function removeUnderlay(u) { if (u) { u.remove(); } }
@@ -2609,6 +2613,7 @@
       const dy = e.touches[0].clientY - g.y;
       if (Math.abs(dx) > 8 || Math.abs(dy) > 8) { g.moved = true; if (g.lp) clearTimeout(g.lp); }
       const ratioOk = Math.abs(dx) > Math.abs(dy) * 1.2;
+      if (ratioOk && Math.abs(dx) > 8) { e.preventDefault(); }
       // Show underlay early (before movement starts) so color/icon are visible immediately
       if (Math.abs(dx) > 8 && ratioOk && !g.underlay) {
         g.underlay = createUnderlay(g.el);
@@ -2631,7 +2636,7 @@
         g.el.style.transition = 'none';
         g.el.style.transform = 'translateX(' + off + 'px)';
       }
-    }, { passive: true });
+    }, { passive: false });
 
     root.addEventListener('touchend', e => {
       if (!g) return;

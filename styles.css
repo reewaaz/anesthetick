@@ -2610,11 +2610,11 @@ main::-webkit-scrollbar-thumb {
 .ref.ref-link:hover { border-color: var(--accent2); background: var(--bg2); text-decoration: none; }
 
 /* Swipe affordance — items move during gesture, color shift indicates action */
-.sub-item, .topic, .secg { position: relative; touch-action: pan-y; }
+.sub-item, .topic, .secg { position: relative; }
 
-/* Fixed underlay revealed underneath the swipeable element */
+/* Underlay revealed underneath the swipeable element */
 .swipe-underlay {
-  position: fixed;
+  position: absolute;
   pointer-events: none;
   z-index: -1;
   display: flex;
