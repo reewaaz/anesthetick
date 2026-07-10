@@ -1652,6 +1652,13 @@
     const check = await ghFetch(GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO, { headers: ghHeaders() });
     if (check.ok) {
       const repo = await check.json().catch(() => null);
+      // Ensure previously-created (possibly public) repos are made private.
+      if (repo && repo.private !== true) {
+        await ghFetch(GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO, {
+          method: 'PATCH', headers: ghHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ private: true })
+        }).catch(() => {});
+      }
       const branch = repo && repo.default_branch ? repo.default_branch : 'main';
       const ref = await ghFetch(GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO + '/git/refs/heads/' + branch, { headers: ghHeaders() });
       if (ref.ok) return;
@@ -1660,7 +1667,7 @@
     const res = await ghFetch(GITHUB_API + '/user/repos', {
       method: 'POST',
       headers: ghHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ name: GITHUB_REPO, description: 'Anesthetick study sync', private: false, auto_init: true })
+      body: JSON.stringify({ name: GITHUB_REPO, description: 'Anesthetick study sync', private: true, auto_init: true })
     });
     if (res.status === 422) {
       // Repo exists but wasn't readable above (scope/permissions) — surface clearly
@@ -1821,8 +1828,8 @@
       dlg.innerHTML = `
         <h3>${mode === 'register' ? 'Create Cloud Account' : 'Cloud Login'}</h3>
         <p style="margin-bottom:16px;font-size:13px;line-height:1.5">${mode === 'register'
-          ? 'Your data syncs via GitHub. Create a <strong>classic Personal Access Token</strong> with <strong>repo</strong> scope, then enter it below.'
-          : 'Enter your GitHub username and personal access token to sync.'}</p>
+          ? 'Your data syncs via GitHub to a <strong>private</strong> repo named &ldquo;anesthetick&rdquo; in your own account. Create a <strong>classic Personal Access Token</strong> with <strong>repo</strong> scope, then enter it below.'
+          : 'Enter your GitHub username and personal access token to sync. Your data lives in a <strong>private</strong> repo in your own account.'}</p>
         <div class="auth-form">
           <input type="text" id="authUser" placeholder="GitHub username" autocomplete="username" />
           <input type="password" id="authPass" placeholder="Personal Access Token" autocomplete="current-password" />
