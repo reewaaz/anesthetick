@@ -2628,7 +2628,7 @@ main::-webkit-scrollbar-thumb {
 .swipe-underlay {
   position: fixed;
   pointer-events: none;
-  z-index: 9999;
+  z-index: -1;
   display: flex;
   align-items: center;
   border-radius: 12px;

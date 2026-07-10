@@ -2621,14 +2621,14 @@
       const dx = e.touches[0].clientX - g.x;
       const dy = e.touches[0].clientY - g.y;
       if (Math.abs(dx) > 8 || Math.abs(dy) > 8) { g.moved = true; if (g.lp) clearTimeout(g.lp); }
-      if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      const ratioOk = Math.abs(dx) > Math.abs(dy) * 1.2;
+      // Show underlay early (before movement starts) so color/icon are visible immediately
+      if (Math.abs(dx) > 12 && ratioOk && !g.underlay) {
+        g.underlay = createUnderlay(g.el);
         if (g.lp) clearTimeout(g.lp);
-        g.swiped = true;
-        const off = Math.max(-130, Math.min(130, dx));
-        const intensity = Math.min(1, Math.abs(dx) / 80);
-        g.el.style.transition = 'none';
-        g.el.style.transform = 'translateX(' + off + 'px)';
-        if (!g.underlay) { g.underlay = createUnderlay(g.el); }
+      }
+      if (g.underlay && ratioOk) {
+        const intensity = Math.min(1, Math.abs(dx) / 60);
         if (dx > 0) {
           g.underlay.className = 'swipe-underlay right';
           g.underlay.innerHTML = '<svg viewBox="0 0 24 24" style="width:20px;height:20px;color:#22c55e;opacity:' + (0.3 + 0.7 * intensity) + '"><path d="M5 13l4 4 10-10" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -2636,6 +2636,13 @@
           g.underlay.className = 'swipe-underlay left';
           g.underlay.innerHTML = '<svg viewBox="0 0 24 24" style="width:18px;height:18px;color:#818cf8;opacity:' + (0.3 + 0.7 * intensity) + '"><path d="M6 3h12v18l-6-4-6 4z" fill="none" stroke="#818cf8" stroke-width="2" stroke-linejoin="round"/></svg>';
         }
+      }
+      if (Math.abs(dx) > 30 && ratioOk) {
+        if (g.lp) clearTimeout(g.lp);
+        g.swiped = true;
+        const off = Math.max(-130, Math.min(130, dx));
+        g.el.style.transition = 'none';
+        g.el.style.transform = 'translateX(' + off + 'px)';
       }
     }, { passive: true });
 
