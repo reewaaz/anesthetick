@@ -170,14 +170,8 @@ a:hover {
   flex-shrink: 0;
 }
 
-.icon-btn:hover {
-  background: var(--surface);
-  color: var(--text);
-}
-
-.icon-btn:active {
-  transform: scale(0.92);
-}
+.icon-btn:hover { background: var(--surface); color: var(--text); }
+@media (hover: hover) and (pointer: fine) { .icon-btn:hover { background: var(--hover); } }
 
 .planner-btn {
   display: flex;
@@ -204,9 +198,7 @@ a:hover {
   background: var(--surface2);
   border-color: var(--accent);
 }
-.planner-btn:active {
-  transform: scale(0.95);
-}
+
 .planner-pct {
   min-width: 28px;
   text-align: center;
@@ -420,10 +412,7 @@ main::-webkit-scrollbar-thumb {
   border-color: rgba(148, 163, 184, 0.25);
 }
 
-.cat:active {
-  transform: scale(0.96);
-  border-color: var(--accent2);
-}
+.cat:active { border-color: var(--accent2); }
 
 .cat::after {
   content: "";
@@ -565,10 +554,7 @@ main::-webkit-scrollbar-thumb {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
 }
 
-.topic:active {
-  transform: scale(0.97);
-  border-color: var(--accent2);
-}
+.topic:active { border-color: var(--accent2); }
 
 .topic .check {
   width: 24px;
@@ -660,9 +646,7 @@ main::-webkit-scrollbar-thumb {
   color: var(--warn);
 }
 
-.bookmark-btn:active {
-  transform: scale(0.85);
-}
+
 @media (hover: hover) and (pointer: fine) {
   .bookmark-btn:hover {
     background: var(--hover);
@@ -705,10 +689,7 @@ main::-webkit-scrollbar-thumb {
   transform: translateX(3px);
 }
 
-.result:active {
-  transform: scale(0.97);
-  border-color: var(--accent2);
-}
+.result:active { border-color: var(--accent2); }
 
 .result .r-cat {
   font-size: 11px;
@@ -951,10 +932,7 @@ main::-webkit-scrollbar-thumb {
   transform: translateX(2px);
 }
 
-.sub-item:active {
-  transform: scale(0.97);
-  border-left-color: var(--accent2);
-}
+.sub-item:active { border-left-color: var(--accent2); }
 
 .sub-item:last-child {
   margin-bottom: 0;
@@ -1071,9 +1049,7 @@ main::-webkit-scrollbar-thumb {
   font-size: 13px;
   transition: 0.2s;
 }
-.custom-sub-add button:active {
-  transform: scale(0.94);
-}
+
 
 /* Sub-item actions */
 .sub-actions {
@@ -1119,9 +1095,7 @@ main::-webkit-scrollbar-thumb {
 .sub-bookmark.active {
   color: var(--accent2);
 }
-.sub-bookmark:active {
-  transform: scale(0.85);
-}
+
 .sub-bookmark svg {
   width: 18px;
   height: 18px;
@@ -1226,9 +1200,7 @@ main::-webkit-scrollbar-thumb {
   box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
 }
 
-.btn-primary:active {
-  transform: scale(0.96);
-}
+
 
 .btn-ghost {
   background: var(--surface);
@@ -1246,9 +1218,7 @@ main::-webkit-scrollbar-thumb {
   color: var(--accent);
 }
 
-.btn-ghost:active {
-  transform: scale(0.96);
-}
+
 
 /* ── Progress view ─────────────────────────────────────── */
 .stat-grid {
@@ -1510,7 +1480,7 @@ main::-webkit-scrollbar-thumb {
   color: #fff;
   border-color: var(--accent);
 }
-.pl-timer-btn:active { transform: scale(0.95); }
+
 .pl-timer-sessions {
   font-size: 12px;
   color: var(--muted);
@@ -1539,7 +1509,7 @@ main::-webkit-scrollbar-thumb {
   color: #fff;
   border-color: var(--accent);
 }
-.pl-preset:active { transform: scale(0.93); }
+
 /* Suggested topics */
 .pl-suggest {
   display: flex;
@@ -1645,7 +1615,7 @@ main::-webkit-scrollbar-thumb {
   color: #fff;
   border-color: var(--accent);
 }
-.planner-tab:active { transform: scale(0.95); }
+
 .planner-suggest {
   padding: 8px 12px;
   border-radius: var(--radius-xs);
@@ -1800,10 +1770,7 @@ main::-webkit-scrollbar-thumb {
   -webkit-tap-highlight-color: transparent;
 }
 
-.set-row:active {
-  transform: scale(0.98);
-  border-color: var(--accent2);
-}
+.set-row:active { border-color: var(--accent2); }
 
 .set-row .set-info {
   flex: 1;
@@ -2019,9 +1986,7 @@ main::-webkit-scrollbar-thumb {
   animation: pop 0.25s var(--ease);
 }
 
-.navbtn:active {
-  transform: scale(0.95);
-}
+
 
 @keyframes pop {
   0% {
@@ -2184,9 +2149,7 @@ main::-webkit-scrollbar-thumb {
 .press {
   transition: transform 0.1s;
 }
-.press:active {
-  transform: scale(0.94);
-}
+
 
 /* ── Toast ─────────────────────────────────────────────── */
 .toast {

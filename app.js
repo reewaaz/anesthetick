@@ -2030,7 +2030,7 @@
   }, { passive: false });
 
   // Pull to refresh
-  let pullY = 0, pulling = false, pullDist = 0;
+  let pullY = 0, pullX = 0, pulling = false, pullDist = 0;
   let $pullEl = null;
 
   const VIEW_FN = { home: viewHome, bookmarks: viewBookmarks, settings: viewCombinedSettings, progress: viewProgress, planner: viewPlanner, category: viewCategory, topic: viewTopic, search: viewSearch };
@@ -2054,6 +2054,7 @@
   $view.addEventListener('touchstart', e => {
     if (Math.round($view.scrollTop) > 0 || e.touches.length !== 1) return;
     pullY = e.touches[0].clientY;
+    pullX = e.touches[0].clientX;
     pullDist = 0;
     pulling = true;
   }, { passive: true });
@@ -2061,7 +2062,8 @@
   $view.addEventListener('touchmove', e => {
     if (!pulling || e.touches.length !== 1) return;
     const dy = e.touches[0].clientY - pullY;
-    if (dy < 0) { pulling = false; removePullEl(); return; }
+    const dx = Math.abs(e.touches[0].clientX - pullX);
+    if (dy < 0 || dx > 12) { pulling = false; removePullEl(); return; }
     e.preventDefault();
     pullDist = Math.min(dy * 0.4, 140);
     if (!$pullEl) { $pullEl = createPullEl(); $view.prepend($pullEl); }
@@ -2634,12 +2636,12 @@
       const dx = e.touches[0].clientX - g.x;
       const dy = e.touches[0].clientY - g.y;
       if (Math.abs(dx) > 8 || Math.abs(dy) > 8) { g.moved = true; if (g.lp) clearTimeout(g.lp); }
-      if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.2) {
         // Clear long-press ref panel during swipe
         if (g.lp) clearTimeout(g.lp);
         g.swiped = true;
-        const off = Math.max(-130, Math.min(130, dx));
-        const intensity = Math.min(1, Math.abs(dx) / 80);
+        const off = Math.max(-180, Math.min(180, dx));
+        const intensity = Math.min(1, Math.abs(dx) / 100);
         g.el.style.transition = 'none';
         g.el.style.transform = 'translateX(' + off + 'px)';
         if (dx > 0) {
@@ -2666,7 +2668,7 @@
       el.style.borderRight = '';
       el.style.background = '';
       setTimeout(() => { el.style.transition = ''; }, 300);
-      if (g.swiped && Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)) {
+      if (g.swiped && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy)) {
         suppressClick = true;
         setTimeout(() => { suppressClick = false; }, 400);
         if (dx > 0) swipeRight(el, g.isSub); else swipeLeft(el, g.isSub);
