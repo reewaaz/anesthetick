@@ -335,8 +335,10 @@
     const pct = topicProgress(topic);
     const bm = isBookmarked(topic.id);
     const allDone = pct === 1 && (topic.sub?.length > 0);
+    const swipeIndHtml = `<div class="swipe-ind right" style="opacity:0"><svg viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M5 13l4 4 10-10" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="swipe-ind left" style="opacity:0"><svg viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M6 3h12v18l-6-4-6 4z" fill="none" stroke="#818cf8" stroke-width="2" stroke-linejoin="round"/></svg></div>`;
     return html`
       <div class="topic ${allDone ? 'done' : ''}" data-topic-id="${topic.id}">
+        ${swipeIndHtml}
         <div class="check" data-action="check">${ICONS.check}</div>
         <div class="body">
           <div class="t-name">${topic.name}</div>
@@ -366,6 +368,8 @@
     const hasRefs = !!(art || vid || others.length);
     return html`
       <div class="sub-item ${done ? 'done' : ''}" data-uid="${u}"${customAttr}>
+        <div class="swipe-ind right" style="opacity:0"><svg viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M5 13l4 4 10-10" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="swipe-ind left" style="opacity:0"><svg viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M6 3h12v18l-6-4-6 4z" fill="none" stroke="#818cf8" stroke-width="2" stroke-linejoin="round"/></svg></div>
         <div class="check">${ICONS.check}</div>
         <div class="sub-context">
           <span class="s-name">${text}</span>
@@ -530,6 +534,8 @@
       </div>
       ${cat.sections.map(sec => html`
         <div class="secg" data-sec="${sec.id}">
+          <div class="swipe-ind right" style="opacity:0"><svg viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M5 13l4 4 10-10" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="swipe-ind left" style="opacity:0"><svg viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M6 3h12v18l-6-4-6 4z" fill="none" stroke="#818cf8" stroke-width="2" stroke-linejoin="round"/></svg></div>
           <div class="sec-name">${sec.name}</div>
           ${sec.desc ? html`<div class="sec-desc">${sec.desc}</div>` : ''}
           ${sec.topics.map(t => renderTopicItem({ ...t, catId: cat.id, catName: cat.name, secId: sec.id, secName: sec.name, catColor: cat.color })).join('')}
@@ -1070,6 +1076,7 @@
           const doneClass = isDone(uidStr) ? ' done' : '';
           const sb = isSubBookmarked(uidStr);
           htmlStr += '<div class="sub-item' + doneClass + '" data-uid="' + uidStr + '">';
+          htmlStr += '<div class="swipe-ind right" style="opacity:0"><svg viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M5 13l4 4 10-10" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="swipe-ind left" style="opacity:0"><svg viewBox="0 0 24 24" style="width:22px;height:22px"><path d="M6 3h12v18l-6-4-6 4z" fill="none" stroke="#818cf8" stroke-width="2" stroke-linejoin="round"/></svg></div>';
           htmlStr += '<div class="check">' + ICONS.check + '</div>';
           htmlStr += '<div class="sub-context"><span class="s-name">' + subText + '</span></div>';
           htmlStr += '<button class="sub-bookmark active" data-action="sub-bookmark" data-sub-uid="' + uidStr + '">' + ICONS['bookmark-filled'] + '</button>';
@@ -1840,7 +1847,7 @@
             lastAutoSyncError = now;
           }
         });
-    }, 2500);
+    }, 800);
   }
 
   /* ── Cross-browser cloud polling ──────────────────────────── */
@@ -1892,7 +1899,7 @@
       const existing = await readCloudFile(GITHUB_DATA_PATH);
       if (!existing) return;
       if (existing.sha === state.cloudSha) return;
-      if (Date.now() - cloudLastPushTime < 3000) return;
+      if (Date.now() - cloudLastPushTime < 1500) return;
       state.cloudSha = existing.sha;
       const text = decodeURIComponent(escape(atob(existing.content)));
       const remote = JSON.parse(text);
@@ -1905,7 +1912,7 @@
   function startCloudPolling() {
     stopCloudPolling();
     pollCloudChanges();
-    cloudPollTimer = setInterval(pollCloudChanges, 5000);
+    cloudPollTimer = setInterval(pollCloudChanges, 2000);
   }
 
   function stopCloudPolling() {
@@ -2510,6 +2517,30 @@
 
   // Swipe right = tick; swipe left = bookmark.
   function swipeRight(el, isSub) {
+    // Section swipe — check all topics inside
+    if (el.classList.contains('secg')) {
+      const secId = el.dataset.sec;
+      if (!secId) return;
+      const allTopics = ALL_TOPICS.filter(t => t.secId === secId);
+      if (!allTopics.length) return;
+      let anyUndone = false;
+      for (const t of allTopics) {
+        if (t.sub) for (let i = 0; i < t.sub.length; i++) {
+          const u = uid(t.catId, t.secId, t.id, i);
+          if (!isDone(u)) { anyUndone = true; state.progress[u] = true; }
+        }
+      }
+      if (!anyUndone) for (const t of allTopics) { if (t.sub) for (let i = 0; i < t.sub.length; i++) delete state.progress[uid(t.catId, t.secId, t.id, i)]; }
+      saveState();
+      el.querySelectorAll('.topic').forEach(tp => {
+        const tid = tp.dataset.topicId;
+        const all = ALL_TOPICS.find(x => x.id === tid);
+        if (all) { const p = topicProgress(all); tp.classList.toggle('done', p === 1); }
+      });
+      haptic(25);
+      toast(anyUndone ? 'Section done' : 'Section unmarked');
+      return;
+    }
     if (isSub) {
       const u = el.dataset.uid;
       if (!u) return;
@@ -2536,6 +2567,26 @@
     }
   }
   function swipeLeft(el, isSub) {
+    // Section swipe — bookmark all topics inside
+    if (el.classList.contains('secg')) {
+      const secId = el.dataset.sec;
+      if (!secId) return;
+      const allTopics = ALL_TOPICS.filter(t => t.secId === secId);
+      let anyAdded = false;
+      for (const t of allTopics) {
+        if (!isBookmarked(t.id)) { state.bookmarks.push(t.id); anyAdded = true; }
+      }
+      if (!anyAdded) {
+        state.bookmarks = state.bookmarks.filter(id => !allTopics.some(t => t.id === id));
+        el.querySelectorAll('.bookmark-btn').forEach(b => { b.classList.remove('active'); b.innerHTML = ICONS.bookmark; });
+      } else {
+        el.querySelectorAll('.bookmark-btn').forEach(b => { b.classList.add('active'); b.innerHTML = ICONS['bookmark-filled']; });
+      }
+      saveState();
+      haptic(18);
+      toast(anyAdded ? 'Section bookmarked' : 'Section bookmarks removed');
+      return;
+    }
     if (isSub) {
       const u = el.dataset.uid;
       if (!u) return;
@@ -2558,9 +2609,9 @@
   function attachGestures(root) {
     let g = null;
     root.addEventListener('touchstart', e => {
-      const el = e.target.closest('.sub-item, .topic');
+      const el = e.target.closest('.sub-item, .topic, .secg');
       if (!el || e.touches.length !== 1) { g = null; return; }
-      const isSub = el.classList.contains('sub-item');
+      const isSub = el.classList.contains('sub-item') || el.classList.contains('secg');
       g = { el, isSub, x: e.touches[0].clientX, y: e.touches[0].clientY, moved: false, swiped: false, longPressed: false, lp: null };
       g.lp = setTimeout(() => {
         if (g && !g.moved && !g.swiped) {
@@ -2580,6 +2631,12 @@
         const off = Math.max(-130, Math.min(130, dx));
         g.el.style.transition = 'none';
         g.el.style.transform = 'translateX(' + off + 'px)';
+        // Show swipe guide icons
+        const rightInd = g.el.querySelector('.swipe-ind.right');
+        const leftInd = g.el.querySelector('.swipe-ind.left');
+        const intensity = Math.min(1, Math.abs(dx) / 80);
+        if (dx > 0 && rightInd) { rightInd.style.opacity = intensity; if (leftInd) leftInd.style.opacity = 0; }
+        else if (dx < 0 && leftInd) { leftInd.style.opacity = intensity; if (rightInd) rightInd.style.opacity = 0; }
       }
     }, { passive: true });
 
@@ -2591,6 +2648,11 @@
       const el = g.el;
       el.style.transition = 'transform .25s ease';
       el.style.transform = '';
+      // Hide swipe guide icons
+      const rightInd = el.querySelector('.swipe-ind.right');
+      const leftInd = el.querySelector('.swipe-ind.left');
+      if (rightInd) rightInd.style.opacity = 0;
+      if (leftInd) leftInd.style.opacity = 0;
       if (g.swiped && Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)) {
         suppressClick = true;
         setTimeout(() => { suppressClick = false; }, 400);
@@ -2603,7 +2665,14 @@
     }, { passive: true });
 
     root.addEventListener('touchcancel', () => {
-      if (g) { if (g.lp) clearTimeout(g.lp); g.el.style.transition = 'transform .25s ease'; g.el.style.transform = ''; g = null; }
+      if (g) {
+        if (g.lp) clearTimeout(g.lp);
+        g.el.style.transition = 'transform .25s ease';
+        g.el.style.transform = '';
+        const ri = g.el.querySelector('.swipe-ind.right'), li = g.el.querySelector('.swipe-ind.left');
+        if (ri) ri.style.opacity = 0; if (li) li.style.opacity = 0;
+        g = null;
+      }
     });
   }
   attachGestures($view);

@@ -2628,4 +2628,33 @@ main::-webkit-scrollbar-thumb {
 .ref.ref-link:hover { border-color: var(--accent2); background: var(--bg2); text-decoration: none; }
 
 /* Swipe affordance */
-.sub-item, .topic { touch-action: pan-y; }
+.sub-item, .topic, .secg { position: relative; overflow: hidden; touch-action: pan-y; }
+
+/* Swipe guide icons (hidden off-screen, slide in during swipe gesture) */
+.swipe-ind {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  width: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  transition: opacity 0.08s;
+  opacity: 0;
+  z-index: 2;
+}
+.swipe-ind.right {
+  right: 100%;
+  background: linear-gradient(to right, transparent, rgba(34,197,94,0.18));
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: #22c55e;
+}
+.swipe-ind.left {
+  left: 100%;
+  background: linear-gradient(to left, transparent, rgba(99,102,241,0.18));
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  color: #818cf8;
+}
+.secg > .swipe-ind.right { background: linear-gradient(to right, transparent, rgba(34,197,94,0.10)); }
+.secg > .swipe-ind.left { background: linear-gradient(to left, transparent, rgba(99,102,241,0.10)); }
