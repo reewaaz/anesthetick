@@ -66,6 +66,7 @@
     state.theme = state.theme === 'light' ? 'dark' : 'light';
     applyTheme(state.theme);
     saveStateDebounced();
+    haptic(12);
   }
 
   // Apply theme on load
@@ -128,6 +129,7 @@
       state.progress[uidStr] = true;
     }
     saveStateDebounced();
+    haptic(8);
   }
 
   function isBookmarked(topicId) {
@@ -139,6 +141,7 @@
     if (idx >= 0) state.bookmarks.splice(idx, 1);
     else state.bookmarks.push(topicId);
     saveStateDebounced();
+    haptic(10);
   }
 
   function isSubBookmarked(uidStr) {
@@ -150,6 +153,7 @@
     if (idx >= 0) state.subBookmarks.splice(idx, 1);
     else state.subBookmarks.push(uidStr);
     saveStateDebounced();
+    haptic(10);
   }
 
   function getCustomSubs(topicId) {
@@ -1447,6 +1451,7 @@
   const $sheetContent = $('#sheetContent');
 
   function openSheet(htmlContent) {
+    haptic(10);
     $sheetContent.innerHTML = htmlContent;
     $sheetBackdrop.hidden = false;
     $sheet.hidden = false;
@@ -1457,6 +1462,7 @@
   }
 
   function closeSheet() {
+    haptic(8);
     $sheetBackdrop.classList.remove('show');
     $sheet.classList.remove('show');
     setTimeout(() => {
@@ -1573,11 +1579,11 @@
   function authHeader() {
     return 'Basic ' + btoa(state.githubUser + ':' + state.githubPin);
   }
-  function wantsPrivate() {
+  function canWritePrivate() {
     const s = (state.githubScopes || '').toLowerCase();
-    if (!s) return true; // fine-grained or unknown — try private
+    if (!s) return false; // unknown scope — safest assume public
     const scopes = s.split(',').map(x => x.trim());
-    return scopes.includes('repo'); // full repo scope → private; only public_repo → public
+    return scopes.includes('repo'); // full repo scope → private writeable
   }
 
   // Timeout-protected fetch so a hung/proxied request can never stall the UI
@@ -1661,21 +1667,7 @@
     const check = await ghFetch(GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO, { headers: ghHeaders() });
     if (check.ok) {
       const repo = await check.json().catch(() => null);
-      // Sync repo visibility to match token scope
-      if (repo) {
-        const wantPrivate = wantsPrivate();
-        if (repo.private !== true && wantPrivate) {
-          await ghFetch(GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO, {
-            method: 'PATCH', headers: ghHeaders({ 'Content-Type': 'application/json' }),
-            body: JSON.stringify({ private: true })
-          }).catch(() => {});
-        } else if (repo.private === true && !wantPrivate) {
-          await ghFetch(GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO, {
-            method: 'PATCH', headers: ghHeaders({ 'Content-Type': 'application/json' }),
-            body: JSON.stringify({ private: false })
-          }).catch(() => {});
-        }
-      }
+      // Don't touch existing repo visibility — Pages requires public
       const branch = repo && repo.default_branch ? repo.default_branch : 'main';
       const ref = await ghFetch(GITHUB_API + '/repos/' + githubOwner() + '/' + GITHUB_REPO + '/git/refs/heads/' + branch, { headers: ghHeaders() });
       if (ref.ok) return;
@@ -1684,13 +1676,12 @@
     const res = await ghFetch(GITHUB_API + '/user/repos', {
       method: 'POST',
       headers: ghHeaders({ 'Content-Type': 'application/json' }),
-      body: JSON.stringify({ name: GITHUB_REPO, description: 'Anesthetick study sync', private: wantsPrivate(), auto_init: true })
+      body: JSON.stringify({ name: GITHUB_REPO, description: 'Anesthetick study sync', private: false, auto_init: true })
     });
     if (res.status === 422) {
       // Repo exists but wasn't readable above (scope/permissions) — surface clearly
       const m = await res.json().catch(() => ({}));
-      const hint = wantsPrivate() ? 'Ensure your PAT has the "repo" scope.' : 'Ensure your PAT has at least "public_repo" scope, or the repo belongs to your account.';
-      throw new Error('Repo "' + GITHUB_REPO + '" exists but is not accessible. ' + (m.message || hint));
+      throw new Error('Repo "' + GITHUB_REPO + '" exists but is not accessible. ' + (m.message || 'Ensure your PAT has at least "public_repo" scope.'));
     }
     if (!res.ok) {
       const m = await res.json().catch(() => ({}));
@@ -1730,12 +1721,7 @@
           await sleep(1000 * Math.pow(1.5, attempt));
           continue;
         }
-        if (res.status === 403) {
-          const hint = wantsPrivate()
-            ? 'Your PAT needs full "repo" scope (not just "public_repo") to write to a private repo. Create a new PAT with repo scope at https://github.com/settings/tokens'
-            : 'Your PAT needs at least "public_repo" scope. Create a new PAT at https://github.com/settings/tokens';
-          throw new Error('Save rejected (403). ' + hint);
-        }
+        if (res.status === 403) throw new Error('Save rejected (403). Ensure your classic PAT has at least "public_repo" scope.');
         if (res.status === 404) throw new Error('Repo "' + GITHUB_REPO + '" not found on GitHub.');
         throw new Error('Save failed: ' + msg);
       }
@@ -1851,13 +1837,13 @@
       dlg.innerHTML = `
         <h3>${mode === 'register' ? 'Create Cloud Account' : 'Cloud Login'}</h3>
         <p style="margin-bottom:16px;font-size:13px;line-height:1.5">${mode === 'register'
-          ? 'Your data syncs via GitHub to a repo named &ldquo;anesthetick&rdquo; in your account. Create a <strong>classic PAT</strong> with <strong>repo</strong> scope (private sync) or <strong>public_repo</strong> (public), then enter it below.'
-          : 'Enter your GitHub username and PAT to sync. Data lives in the &ldquo;anesthetick&rdquo; repo (private if your PAT has repo scope).'}</p>
+          ? 'Your data syncs via GitHub to a public repo named &ldquo;anesthetick&rdquo; in your account (required for Pages hosting). Create a <strong>classic PAT</strong> with <strong>public_repo</strong> scope, then enter it below.'
+          : 'Enter your GitHub username and PAT to sync. Data lives in the &ldquo;anesthetick&rdquo; repo.'}</p>
         <div class="auth-form">
           <input type="text" id="authUser" placeholder="GitHub username" autocomplete="username" />
           <input type="password" id="authPass" placeholder="Personal Access Token" autocomplete="current-password" />
           <p class="auth-hint">${mode === 'register'
-            ? '<a href="https://github.com/settings/tokens/new?description=anesthetick&scopes=repo" target="_blank" rel="noopener" style="color:var(--accent)">Create a token on GitHub &rarr;</a><br><span style="font-size:11px;color:var(--muted)">Use a <strong>classic</strong> token with the <strong>repo</strong> scope (fine-grained tokens need Contents read/write on the &ldquo;anesthetick&rdquo; repo). The token is stored on this device only.</span>'
+            ? '<a href="https://github.com/settings/tokens/new?description=anesthetick&scopes=public_repo" target="_blank" rel="noopener" style="color:var(--accent)">Create a token on GitHub &rarr;</a><br><span style="font-size:11px;color:var(--muted)">Use a <strong>classic</strong> token with <strong>public_repo</strong> scope. The token is stored on this device only.</span>'
             : 'Enter the same GitHub username and PAT you used to register.'}</p>
         </div>
         <div class="dialog-actions" style="justify-content:stretch">
@@ -1890,18 +1876,18 @@
   /* ── event delegation ───────────────────────────────────── */
 
   $('#topTitle').addEventListener('click', () => {
-    sfxNav();
+    haptic(10); sfxNav();
     navigate('home');
   });
 
   $('#plannerBtn').addEventListener('click', () => {
-    sfxNav();
+    haptic(10); sfxNav();
     navigate('planner');
   });
   // Mobile touch support
   $('#plannerBtn').addEventListener('touchstart', e => {
     e.preventDefault(); // prevent click delay
-    sfxNav();
+    haptic(10); sfxNav();
     navigate('planner');
   }, { passive: false });
 
@@ -2123,6 +2109,7 @@
         }
       });
       saveState();
+      haptic(12);
       if (checkVal) { sfxCelebrate(); celebrate(); } else { sfxUncheck(); }
       toast(checkVal ? 'All checked' : 'All unchecked');
       return;
@@ -2501,12 +2488,14 @@
   let searchTimeout;
 
   function expandSearch() {
+    haptic(10);
     $searchWrap.classList.add('open');
     $topTitle.classList.add('hidden');
     $searchInput.focus();
   }
 
   function collapseSearch() {
+    haptic(10);
     $searchWrap.classList.remove('open');
     $topTitle.classList.remove('hidden');
     $searchInput.value = '';
@@ -2555,11 +2544,11 @@
     btn.addEventListener('click', () => {
       const view = btn.dataset.view;
       if (btn.classList.contains('is-back')) {
-        sfxNav();
+        haptic(10); sfxNav();
         window.history.back();
         return;
       }
-      sfxNav();
+      haptic(10); sfxNav();
       if ($searchWrap.classList.contains('open')) {
         $searchWrap.classList.remove('open');
         $topTitle.classList.remove('hidden');
