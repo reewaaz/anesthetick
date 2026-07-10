@@ -31,17 +31,18 @@
         if (!parsed.examDate) parsed.examDate = '';
         if (typeof parsed.planWeeksAhead !== 'number') parsed.planWeeksAhead = 26;
         if (typeof parsed.studyDays !== 'number') parsed.studyDays = 5;
+        if (!parsed.cloudSha) parsed.cloudSha = '';
         return parsed;
       }
     } catch (_) {}
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    return { progress: {}, bookmarks: [], subBookmarks: [], customSubs: {}, topicNotes: {}, githubUser: '', githubPin: '', githubLogin: '', githubScopes: '', installDismissed: false, theme: prefersDark ? 'dark' : 'light', pomodoro: { sessions: 0, total: 0, date: '', focusMin: 25, breakMin: 5, endTs: 0, mode: 'Focus', running: false }, examDate: '', planWeeksAhead: 26, studyDays: 5 };
+    return { progress: {}, bookmarks: [], subBookmarks: [], customSubs: {}, topicNotes: {}, githubUser: '', githubPin: '', githubLogin: '', githubScopes: '', cloudSha: '', installDismissed: false, theme: prefersDark ? 'dark' : 'light', pomodoro: { sessions: 0, total: 0, date: '', focusMin: 25, breakMin: 5, endTs: 0, mode: 'Focus', running: false }, examDate: '', planWeeksAhead: 26, studyDays: 5 };
   }
 
-  function saveState() {
+  function saveState(opts) {
     try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (_) {}
     updatePlannerPct?.();
-    triggerAutoSync();
+    if (!opts || !opts.silent) triggerAutoSync();
   }
 
   const saveStateDebounced = (function () {
@@ -1723,7 +1724,10 @@
         if (existing === 'RETRY') { await sleep(1200 * attempt); continue; }
         const sha = existing ? existing.sha : null;
         const res = await writeCloudFile(GITHUB_DATA_PATH, contentB64, sha);
-        if (res.ok) return true;
+        if (res.ok) {
+          try { const body = await res.json(); if (body?.content?.sha) { state.cloudSha = body.content.sha; cloudLastPushTime = Date.now(); saveState({ silent: true }); } } catch (_) {}
+          return true;
+        }
         const info = await res.text().catch(() => '');
         let msg = info.slice(0, 200);
         try { msg = (JSON.parse(info).message) || msg; } catch (_) {}
@@ -1768,6 +1772,7 @@
     saveState();
     await ensureRepo();
     await syncToGithub(cloudPayload());
+    startCloudPolling();
     toast('Registered as ' + login);
     navigate('home');
   }
@@ -1781,7 +1786,10 @@
     try {
       const data = await syncFromGithub();
       const loaded = applyCloudData(data);
+      // Store the sha of the data we just loaded
+      try { const ex = await readCloudFile(GITHUB_DATA_PATH); if (ex?.sha) { state.cloudSha = ex.sha; } } catch (_) {}
       saveState();
+      startCloudPolling();
       toast('Welcome back ' + login + (loaded ? ' — data loaded' : ''));
     } catch (err) {
       if (err.message && err.message.indexOf('No data found') !== -1) {
@@ -1791,11 +1799,13 @@
       } else {
         toast('Welcome ' + login + ' — ' + err.message);
       }
+      startCloudPolling();
     }
     navigate('home');
   }
 
   function cloudLogout() {
+    stopCloudPolling();
     state.githubUser = '';
     state.githubPin = '';
     saveState();
@@ -1824,6 +1834,70 @@
     }, 2500);
   }
 
+  /* ── Cross-browser cloud polling ──────────────────────────── */
+  let cloudLastPushTime = 0;
+  let cloudPollTimer = null;
+
+  function mergeCloudData(remote) {
+    let changed = false;
+    if (remote.progress) {
+      for (const key in remote.progress) {
+        if (remote.progress[key] && !state.progress[key]) { state.progress[key] = true; changed = true; }
+      }
+    }
+    if (remote.bookmarks) {
+      for (const bm of remote.bookmarks) { if (!state.bookmarks.includes(bm)) { state.bookmarks.push(bm); changed = true; } }
+    }
+    if (remote.subBookmarks) {
+      for (const sb of remote.subBookmarks) { if (!state.subBookmarks.includes(sb)) { state.subBookmarks.push(sb); changed = true; } }
+    }
+    if (remote.topicNotes) {
+      for (const key in remote.topicNotes) { if (!state.topicNotes[key]) { state.topicNotes[key] = remote.topicNotes[key]; changed = true; } }
+    }
+    if (remote.customSubs) {
+      for (const tid in remote.customSubs) {
+        const rl = remote.customSubs[tid] || [];
+        const ll = state.customSubs[tid] || [];
+        for (const item of rl) { if (!ll.includes(item)) { ll.push(item); changed = true; } }
+        state.customSubs[tid] = ll;
+      }
+    }
+    if (remote.examDate && !state.examDate) { state.examDate = remote.examDate; changed = true; }
+    if (typeof remote.planWeeksAhead === 'number' && !state.planWeeksAhead) { state.planWeeksAhead = remote.planWeeksAhead; changed = true; }
+    if (typeof remote.studyDays === 'number' && !state.studyDays) { state.studyDays = remote.studyDays; changed = true; }
+    if (changed) {
+      saveState({ silent: true });
+      if (state.view) navigate(state.view);
+    }
+    return changed;
+  }
+
+  async function pollCloudChanges() {
+    if (!isCloudConnected()) return;
+    try {
+      const existing = await readCloudFile(GITHUB_DATA_PATH);
+      if (!existing) return;
+      if (existing.sha === state.cloudSha) return;
+      if (Date.now() - cloudLastPushTime < 3000) return;
+      state.cloudSha = existing.sha;
+      const text = decodeURIComponent(escape(atob(existing.content)));
+      const remote = JSON.parse(text);
+      if (mergeCloudData(remote)) {
+        toast('Synced updates from another browser');
+      }
+    } catch (_) {}
+  }
+
+  function startCloudPolling() {
+    stopCloudPolling();
+    pollCloudChanges();
+    cloudPollTimer = setInterval(pollCloudChanges, 10000);
+  }
+
+  function stopCloudPolling() {
+    if (cloudPollTimer) { clearInterval(cloudPollTimer); cloudPollTimer = null; }
+  }
+
   // Auto-login + load cloud data on app start
   function tryAutoLogin() {
     if (!isCloudConnected()) return;
@@ -1836,7 +1910,11 @@
       .then(data => {
         if (applyCloudData(data)) { saveState(); updatePlannerPct?.(); }
       })
-      .catch(() => { /* ignore: no data / unreachable */ });
+      .catch(() => { /* ignore: no data / unreachable */ })
+      .finally(() => {
+        readCloudFile(GITHUB_DATA_PATH).then(ex => { if (ex?.sha) { state.cloudSha = ex.sha; saveState({ silent: true }); } }).catch(() => {});
+        startCloudPolling();
+      });
   }
 
   // Login/Register dialog
@@ -2009,8 +2087,17 @@
       return;
     }
 
-    // Topic click (click on topic row, not inside sub-item)
+    // Topic click (click on topic row, not inside sub-item or bookmark)
     if (target.dataset.topicId && !target.dataset.action && !e.target.closest('.sub-item, .sub-bookmark, .sub-del')) {
+      // Clicks on the left 48px of the topic row trigger check instead of navigation
+      const topicEl = target.closest('.topic');
+      if (topicEl) {
+        const rect = topicEl.getBoundingClientRect();
+        if (e.clientX - rect.left < 48) {
+          const checkBtn = topicEl.querySelector('.check');
+          if (checkBtn) { checkBtn.click(); return; }
+        }
+      }
       haptic(8); sfxNav();
       navigate('topic', target.dataset.topicId);
       return;
@@ -2237,7 +2324,7 @@
       haptic(12);
       showConfirm('Reset Everything', 'Wipe all local data including progress, bookmarks, notes, and theme? This cannot be undone.', 'Wipe', 'Cancel').then(ok => {
         if (!ok) return;
-        state = { progress: {}, bookmarks: [], subBookmarks: [], customSubs: {}, topicNotes: {}, githubUser: '', githubPin: '', githubScopes: '', installDismissed: false, theme: 'dark' };
+        state = { progress: {}, bookmarks: [], subBookmarks: [], customSubs: {}, topicNotes: {}, githubUser: '', githubPin: '', githubScopes: '', cloudSha: '', installDismissed: false, theme: 'dark' };
         applyTheme('dark');
         saveState();
         toast('All data wiped');
