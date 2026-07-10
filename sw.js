@@ -1,4 +1,4 @@
-const CACHE = 'anesthetick-v4';
+const CACHE = 'anesthetick-v5';
 const STATIC = [
   'manifest.json',
   'assets/icon.svg',

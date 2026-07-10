@@ -571,7 +571,7 @@
           <h2>${topic.name}</h2>
           ${topic.desc ? html`<div style="font-size:13px;color:var(--muted);margin-top:4px;font-weight:400;line-height:1.5">${topic.desc}</div>` : ''}
         </div>
-        <button class="bookmark-btn ${bm ? 'active' : ''}" data-action="bookmark" style="width:36px;height:36px">${bm ? ICONS['bookmark-filled'] : ICONS.bookmark}</button>
+        <button class="bookmark-btn ${bm ? 'active' : ''}" data-action="bookmark" data-topic-id="${topicId}" style="width:36px;height:36px">${bm ? ICONS['bookmark-filled'] : ICONS.bookmark}</button>
       </div>
       ${topic.refs ? html`
         <div class="refs">${topic.refs.filter(r => !isRCOA(r)).map(r => {
@@ -2149,7 +2149,7 @@
       haptic(12);
       const topicEl = target.closest('[data-topic-id]');
       if (!topicEl) return;
-      const tid = topicEl.dataset.topicId;
+      const tid = target.dataset.topicId || topicEl.dataset.topicId;
       const wasBm = isBookmarked(tid);
       // Toggle topic bookmark
       if (wasBm) {
@@ -2182,9 +2182,10 @@
         }
       }
       saveState();
-      const btns = topicEl.querySelectorAll('.bookmark-btn');
+      const btns = new Set(topicEl.querySelectorAll('.bookmark-btn'));
+      if (target.classList.contains('bookmark-btn')) btns.add(target);
       btns.forEach(btn => {
-        btn.classList.toggle('active');
+        btn.classList.toggle('active', isBookmarked(tid));
         btn.innerHTML = isBookmarked(tid) ? ICONS['bookmark-filled'] : ICONS.bookmark;
       });
       toast(wasBm ? 'Bookmark removed' : 'Topic saved');
