@@ -345,20 +345,27 @@
     const sb = isSubBookmarked(u);
     const customAttr = isCustom ? ' data-custom="1"' : '';
     const refs = isObj && Array.isArray(sub.r) ? sub.r : (topic.refs || []);
+    const { books, others } = splitRefs(refs);
     const art = isObj ? articleLinkFor(sub) : null;
     const vid = isObj ? videoLinkFor(sub) : null;
+    const hasRefs = !!(art || vid || others.length);
     return html`
       <div class="sub-item ${done ? 'done' : ''}" data-uid="${u}"${customAttr}>
         <div class="check">${ICONS.check}</div>
         <div class="sub-context">
           <span class="s-name">${text}</span>
-          <div class="sub-res">
-            ${refs.map(r => html`<a class="res-chip book" href="${bookLinkFor(r)}" target="_blank" rel="noopener" title="${bookTitle(r)}">${ICONS.book} ${r}</a>`).join('')}
-            ${art ? html`<a class="res-chip art" href="${art.href}" target="_blank" rel="noopener" title="${art.label} a relevant article">${ICONS.external} ${art.label}</a>` : ''}
-            ${vid ? html`<a class="res-chip vid" href="${vid.href}" target="_blank" rel="noopener" title="Supplementary video">${ICONS.play} ${vid.label}</a>` : ''}
+          <div class="sub-books">
+            ${books.map(r => html`<span class="ref-book" title="${bookTitle(r)}">${r}</span>`).join('')}
           </div>
+          ${hasRefs ? html`
+          <div class="sub-refs">
+            ${art ? html`<a class="res-link art" href="${art.href}" target="_blank" rel="noopener" title="Open a relevant article">${ICONS.external} ${art.label}</a>` : ''}
+            ${vid ? html`<a class="res-link vid" href="${vid.href}" target="_blank" rel="noopener" title="Supplementary video">${ICONS.play} ${vid.label}</a>` : ''}
+            ${others.map(o => { const ol = otherRefLink(o); return html`<a class="res-link ref" href="${ol.href}" target="_blank" rel="noopener" title="${ol.title}">${ICONS.external} ${ol.label}</a>`; }).join('')}
+          </div>` : ''}
         </div>
         <div class="sub-actions">
+          ${hasRefs ? html`<button class="ref-btn" title="Show references" aria-label="Show references">${ICONS.link}</button>` : ''}
           ${isCustom ? html`<button class="sub-del" data-action="del-custom-sub" data-topic-id="${topic.id}" data-custom-idx="${idx}">✕</button>` : ''}
           <button class="sub-bookmark ${sb ? 'active' : ''}" data-action="sub-bookmark" data-sub-uid="${u}">${sb ? ICONS['bookmark-filled'] : ICONS.bookmark}</button>
         </div>
@@ -392,14 +399,6 @@
     return { code, base, chapter, entry, chTitle };
   }
 
-  // Where to READ a book chapter. Uses the publisher/source URL when available,
-  // otherwise a scoped search so it always resolves to a real result.
-  function bookLinkFor(r) {
-    const rr = resolveRef(r);
-    if (rr.entry && rr.entry.url) return rr.entry.url;
-    const q = [rr.entry ? rr.entry.label : r, rr.chapter ? ('chapter ' + rr.chapter + (rr.chTitle ? ' ' + rr.chTitle : '')) : '', 'anaesthesia'].filter(Boolean).join(' ');
-    return 'https://www.google.com/search?q=' + enc(q);
-  }
   function bookTitle(r) {
     const rr = resolveRef(r);
     if (!rr.entry) return r;
@@ -410,18 +409,71 @@
     return t;
   }
 
+  // Books are shown as plain text only (no outbound link). Codes that are not
+  // textbooks and are not RCoA syllabus codes become "other references".
+  const BOOK_CODES = ['MM', 'MIL', 'DD'];
+  function isRCOA(code) { return code.indexOf('RCoA') === 0; }
+  function splitRefs(refs) {
+    const books = [], others = [];
+    (refs || []).forEach(r => {
+      if (isRCOA(r)) return;                       // drop syllabus refs entirely
+      const base = r.split(/\s+Ch\./)[0].trim();
+      if (BOOK_CODES.indexOf(base) !== -1) books.push(r);
+      else others.push(r);
+    });
+    return { books, others };
+  }
+
+  // Strip parens / punctuation / excess words so searches return real results.
+  function cleanQuery(s) {
+    return (s || '')
+      .replace(/\([^)]*\)/g, ' ')
+      .replace(/[^\w\s-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .split(' ')
+      .slice(0, 8)
+      .join(' ');
+  }
+
   // Where to READ an article for a sub-item. Trusted deep links used directly;
-  // untrusted ones routed to a site-scoped search to avoid 404s.
+  // untrusted ones routed to a site-scoped search; otherwise a search scoped to
+  // the main free anesthesia education sites (always returns relevant results).
   function articleLinkFor(sub) {
     const text = (sub && sub.t) || '';
     const a = sub && sub.a;
-    if (!a) return { href: 'https://pubmed.ncbi.nlm.nih.gov/?term=' + enc(text + ' anaesthesia'), label: 'PubMed' };
-    const h = hostOf(a);
-    if (RS.TRUSTED_EXACT && RS.TRUSTED_EXACT.indexOf(h) !== -1) return { href: a, label: 'Read' };
-    return { href: 'https://www.google.com/search?q=' + enc('site:' + h + ' ' + text), label: 'Read (search)' };
+    if (a) {
+      const h = hostOf(a);
+      if (RS.TRUSTED_EXACT && RS.TRUSTED_EXACT.indexOf(h) !== -1) return { href: a, label: 'Read' };
+      return { href: 'https://www.google.com/search?q=' + enc('site:' + h + ' ' + cleanQuery(text)), label: 'Read' };
+    }
+    const q = cleanQuery(text) + ' (site:openanesthesia.org OR site:derangedphysiology.com OR site:litfl.com OR site:nysora.com)';
+    return { href: 'https://www.google.com/search?q=' + enc(q), label: 'Articles' };
   }
   function videoLinkFor(sub) {
-    return { href: 'https://www.youtube.com/results?search_query=' + enc(((sub && sub.t) || '') + ' anaesthesia'), label: 'Video' };
+    return { href: 'https://www.youtube.com/results?search_query=' + enc(cleanQuery((sub && sub.t) || '') + ' anaesthesia'), label: 'Video' };
+  }
+  function otherRefLink(code) {
+    const rr = resolveRef(code);
+    const label = rr.entry ? rr.entry.label : code;
+    const href = (rr.entry && rr.entry.url)
+      ? rr.entry.url
+      : ('https://www.google.com/search?q=' + enc(label + ' anaesthesia'));
+    return { code, label: code, title: label, href };
+  }
+
+  // Haptic feedback (mobile). No-op where unsupported.
+  function haptic(pattern) {
+    try { if (navigator.vibrate) navigator.vibrate(pattern); } catch (_) {}
+  }
+
+  // Reveal / hide the references panel for a sub-item (long-press on mobile,
+  // hyperlink button on desktop).
+  function toggleRefsPanel(el) {
+    const panel = el && el.querySelector('.sub-refs');
+    if (!panel) return;
+    const open = panel.classList.toggle('open');
+    if (open) haptic(12);
   }
 
   function renderTopicLinks(topic) {
@@ -503,7 +555,13 @@
         <button class="bookmark-btn ${bm ? 'active' : ''}" data-action="bookmark" style="width:36px;height:36px">${bm ? ICONS['bookmark-filled'] : ICONS.bookmark}</button>
       </div>
       ${topic.refs ? html`
-        <div class="refs">${topic.refs.map(r => html`<a class="ref" href="${bookLinkFor(r)}" target="_blank" rel="noopener" title="${bookTitle(r)}">${r}</a>`).join('')}</div>
+        <div class="refs">${topic.refs.filter(r => !isRCOA(r)).map(r => {
+          const base = r.split(/\s+Ch\./)[0].trim();
+          if (BOOK_CODES.indexOf(base) !== -1) return html`<span class="ref-book" title="${bookTitle(r)}">${r}</span>`;
+          const rr = resolveRef(r);
+          const href = (rr.entry && rr.entry.url) ? rr.entry.url : ('https://www.google.com/search?q=' + enc((rr.entry ? rr.entry.label : r) + ' anaesthesia'));
+          return html`<a class="ref ref-link" href="${href}" target="_blank" rel="noopener" title="${rr.entry ? rr.entry.label : r}">${r}</a>`;
+        }).join('')}</div>
       ` : ''}
       ${renderTopicLinks(topic)}
       ${allSubs.length ? html`
@@ -1961,6 +2019,7 @@
     if (action === 'sub-bookmark') {
       e.stopPropagation();
       sfxBookmark();
+      haptic(12);
       const uidStr = target.dataset.subUid;
       if (uidStr) {
         toggleSubBookmark(uidStr);
@@ -2008,6 +2067,7 @@
     if (action === 'bookmark') {
       e.stopPropagation();
       sfxBookmark();
+      haptic(12);
       const topicEl = target.closest('[data-topic-id]');
       if (!topicEl) return;
       const tid = topicEl.dataset.topicId;
@@ -2199,12 +2259,13 @@
   $view.addEventListener('click', e => {
     const subItem = e.target.closest('.sub-item');
     if (!subItem || subItem.dataset.uid === undefined) return;
-    // Don't toggle when clicking bookmark or delete buttons
-    if (e.target.closest('.sub-bookmark, .sub-del, [data-action]')) return;
+    // Don't toggle when clicking bookmark, delete, reference links/buttons
+    if (e.target.closest('a, .sub-bookmark, .sub-del, .ref-btn, .sub-refs, [data-action]')) return;
     const u = subItem.dataset.uid;
     const wasDone = isDone(u);
     toggleDone(u);
     subItem.classList.toggle('done', isDone(u));
+    haptic(wasDone ? 8 : 14);
     if (wasDone) { sfxUncheck(); } else { sfxCheck(); }
     // Check if all subtopics are now done → celebrate
     const parentTopic = subItem.closest('[data-topic-id]');
@@ -2259,12 +2320,148 @@
     // Sub-item check
     const subItem = e.target.closest('.sub-item');
     if (!subItem || subItem.dataset.uid === undefined) return;
+    if (e.target.closest('a, .sub-bookmark, .sub-del, .ref-btn, .sub-refs, [data-action]')) return;
     const u = subItem.dataset.uid;
     const wasDone = isDone(u);
     toggleDone(u);
     subItem.classList.toggle('done', isDone(u));
+    haptic(wasDone ? 8 : 14);
     if (wasDone) { sfxUncheck(); } else { sfxCheck(); }
   });
+
+  // ── Reference button + gestures (long-press, swipe) ──────────
+  let suppressClick = false;
+  document.addEventListener('click', e => {
+    if (suppressClick) { e.stopPropagation(); e.preventDefault(); }
+  }, true);
+
+  // Desktop: hyperlink button reveals the references panel.
+  function bindRefsButton(root) {
+    root.addEventListener('click', e => {
+      const btn = e.target.closest('.ref-btn');
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const item = btn.closest('.sub-item');
+      if (item) toggleRefsPanel(item);
+    }, true);
+  }
+  bindRefsButton($view);
+  bindRefsButton($sheetContent);
+
+  function refreshTopicPct(topicEl) {
+    if (!topicEl) return;
+    const all = ALL_TOPICS.find(t => t.id === topicEl.dataset.topicId);
+    if (!all) return;
+    const pct = topicProgress(all);
+    const pctEl = topicEl.querySelector('.t-pct');
+    if (pctEl) pctEl.textContent = Math.round(pct * 100) + '%';
+    else if (pct > 0) {
+      const meta = topicEl.querySelector('.t-meta');
+      if (meta) { const s = document.createElement('span'); s.className = 't-pct'; s.textContent = Math.round(pct * 100) + '%'; meta.appendChild(s); }
+    }
+  }
+
+  // Swipe right = tick; swipe left = bookmark.
+  function swipeRight(el, isSub) {
+    if (isSub) {
+      const u = el.dataset.uid;
+      if (!u) return;
+      const was = isDone(u);
+      state.progress[u] = !was;
+      saveState();
+      el.classList.toggle('done', !was);
+      haptic(18);
+      toast(!was ? 'Done' : 'Undone');
+      refreshTopicPct(el.closest('[data-topic-id]'));
+    } else {
+      const tid = el.dataset.topicId;
+      const all = ALL_TOPICS.find(t => t.id === tid);
+      if (!all || !all.sub || !all.sub.length) return;
+      const allDone = all.sub.every((_, i) => isDone(uid(all.catId, all.secId, all.id, i)));
+      const setVal = !allDone;
+      for (let i = 0; i < all.sub.length; i++) state.progress[uid(all.catId, all.secId, all.id, i)] = setVal;
+      saveState();
+      el.classList.toggle('done', setVal);
+      el.querySelectorAll('.sub-item').forEach(s => s.classList.toggle('done', setVal));
+      haptic(25);
+      toast(setVal ? 'Topic complete' : 'Unmarked');
+      refreshTopicPct(el);
+    }
+  }
+  function swipeLeft(el, isSub) {
+    if (isSub) {
+      const u = el.dataset.uid;
+      if (!u) return;
+      toggleSubBookmark(u);
+      const bm = el.querySelector('.sub-bookmark');
+      if (bm) { bm.classList.toggle('active', isSubBookmarked(u)); bm.innerHTML = isSubBookmarked(u) ? ICONS['bookmark-filled'] : ICONS.bookmark; }
+      haptic(18);
+      toast(isSubBookmarked(u) ? 'Saved' : 'Removed');
+    } else {
+      const tid = el.dataset.topicId;
+      if (!tid) return;
+      toggleBookmark(tid);
+      const btns = el.querySelectorAll('.bookmark-btn');
+      btns.forEach(b => { b.classList.toggle('active'); b.innerHTML = isBookmarked(tid) ? ICONS['bookmark-filled'] : ICONS.bookmark; });
+      haptic(18);
+      toast(isBookmarked(tid) ? 'Topic saved' : 'Removed');
+    }
+  }
+
+  function attachGestures(root) {
+    let g = null;
+    root.addEventListener('touchstart', e => {
+      const el = e.target.closest('.sub-item, .topic');
+      if (!el || e.touches.length !== 1) { g = null; return; }
+      const isSub = el.classList.contains('sub-item');
+      g = { el, isSub, x: e.touches[0].clientX, y: e.touches[0].clientY, moved: false, swiped: false, longPressed: false, lp: null };
+      g.lp = setTimeout(() => {
+        if (g && !g.moved && !g.swiped) {
+          g.longPressed = true;
+          if (g.isSub) { toggleRefsPanel(g.el); haptic(12); }
+        }
+      }, 480);
+    }, { passive: true });
+
+    root.addEventListener('touchmove', e => {
+      if (!g) return;
+      const dx = e.touches[0].clientX - g.x;
+      const dy = e.touches[0].clientY - g.y;
+      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) { g.moved = true; if (g.lp) clearTimeout(g.lp); }
+      if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+        g.swiped = true;
+        const off = Math.max(-130, Math.min(130, dx));
+        g.el.style.transition = 'none';
+        g.el.style.transform = 'translateX(' + off + 'px)';
+      }
+    }, { passive: true });
+
+    root.addEventListener('touchend', e => {
+      if (!g) return;
+      if (g.lp) clearTimeout(g.lp);
+      const dx = e.changedTouches[0].clientX - g.x;
+      const dy = e.changedTouches[0].clientY - g.y;
+      const el = g.el;
+      el.style.transition = 'transform .25s ease';
+      el.style.transform = '';
+      if (g.swiped && Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)) {
+        suppressClick = true;
+        setTimeout(() => { suppressClick = false; }, 400);
+        if (dx > 0) swipeRight(el, g.isSub); else swipeLeft(el, g.isSub);
+      } else if (g.longPressed && g.isSub) {
+        suppressClick = true;
+        setTimeout(() => { suppressClick = false; }, 400);
+      }
+      g = null;
+    }, { passive: true });
+
+    root.addEventListener('touchcancel', () => {
+      if (g) { if (g.lp) clearTimeout(g.lp); g.el.style.transition = 'transform .25s ease'; g.el.style.transform = ''; g = null; }
+    });
+  }
+  attachGestures($view);
+  attachGestures($sheetContent);
 
   // Search input
   const $searchInput = $('#searchInput');

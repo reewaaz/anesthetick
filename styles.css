@@ -2551,3 +2551,81 @@ main::-webkit-scrollbar-thumb {
   padding: 12px 14px;
   border-top: 1px solid var(--line);
 }
+
+/* ── Book + chapter references (always visible, plain text) ── */
+.sub-books {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 6px;
+}
+.ref-book {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  padding: 2px 9px;
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface2));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+  color: var(--accent);
+  cursor: default;
+}
+
+/* ── Hyperlink button (desktop only; mobile uses long-press) ── */
+.ref-btn {
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: var(--bg2);
+  color: var(--accent2);
+  cursor: pointer;
+  transition: 0.2s;
+}
+.ref-btn:hover { background: var(--surface2); border-color: var(--accent2); }
+.ref-btn .ic { width: 16px; height: 16px; }
+@media (hover: hover) and (pointer: fine) { .ref-btn { display: inline-flex; } }
+
+/* ── Revealable references panel (long-press / hyperlink) ── */
+.sub-refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  margin-top: 0;
+  transition: max-height 0.3s ease, opacity 0.25s ease, margin-top 0.3s ease;
+}
+.sub-refs.open { max-height: 220px; opacity: 1; margin-top: 8px; }
+
+.res-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  color: var(--text2);
+  text-decoration: none;
+  transition: 0.2s;
+}
+.res-link:hover { text-decoration: none; transform: translateY(-1px); background: var(--surface2); }
+.res-link .ic { width: 12px; height: 12px; }
+.res-link.art { color: var(--accent2); border-color: color-mix(in srgb, var(--accent2) 35%, var(--line)); }
+.res-link.vid { color: #f472b6; border-color: color-mix(in srgb, #f472b6 35%, var(--line)); }
+.res-link.ref { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+
+/* Topic-level non-book reference links */
+.ref.ref-link { color: var(--accent2); text-decoration: none; cursor: pointer; }
+.ref.ref-link:hover { border-color: var(--accent2); background: var(--bg2); text-decoration: none; }
+
+/* Swipe affordance */
+.sub-item, .topic { touch-action: pan-y; }
