@@ -2148,13 +2148,44 @@
       const topicEl = target.closest('[data-topic-id]');
       if (!topicEl) return;
       const tid = topicEl.dataset.topicId;
-      toggleBookmark(tid);
+      const wasBm = isBookmarked(tid);
+      // Toggle topic bookmark
+      if (wasBm) {
+        state.bookmarks.splice(state.bookmarks.indexOf(tid), 1);
+      } else {
+        state.bookmarks.push(tid);
+      }
+      // Toggle all sub-item bookmarks under this topic
+      const all = ALL_TOPICS.find(t => t.id === tid);
+      if (all && all.sub) {
+        for (let i = 0; i < all.sub.length; i++) {
+          const u = uid(all.catId, all.secId, all.id, i);
+          if (wasBm) {
+            const idx = state.subBookmarks.indexOf(u);
+            if (idx !== -1) state.subBookmarks.splice(idx, 1);
+          } else {
+            if (state.subBookmarks.indexOf(u) === -1) state.subBookmarks.push(u);
+          }
+        }
+      }
+      // Also toggle custom sub-item bookmarks
+      const customSubs = getCustomSubs(tid);
+      for (let i = 0; i < customSubs.length; i++) {
+        const u = uid(all ? all.catId : '', all ? all.secId : '', tid, i + 1000);
+        if (wasBm) {
+          const idx = state.subBookmarks.indexOf(u);
+          if (idx !== -1) state.subBookmarks.splice(idx, 1);
+        } else {
+          if (state.subBookmarks.indexOf(u) === -1) state.subBookmarks.push(u);
+        }
+      }
+      saveState();
       const btns = topicEl.querySelectorAll('.bookmark-btn');
       btns.forEach(btn => {
         btn.classList.toggle('active');
         btn.innerHTML = isBookmarked(tid) ? ICONS['bookmark-filled'] : ICONS.bookmark;
       });
-      toast(isBookmarked(tid) ? 'Topic saved' : 'Bookmark removed');
+      toast(wasBm ? 'Bookmark removed' : 'Topic saved');
       return;
     }
 

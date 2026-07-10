@@ -1142,10 +1142,14 @@ main::-webkit-scrollbar-thumb {
   padding: 8px 4px;
   margin-bottom: 4px;
   border-left: none;
-  background: none;
+  background: var(--surface);
 }
 .saved-sub-group .sub-item:hover {
-  background: var(--hover);
+  background: var(--surface2);
+}
+.saved-sub-group .sub-item.done {
+  background: color-mix(in srgb, var(--ok) 6%, var(--surface));
+  opacity: 0.8;
 }
 .saved-sub-group .sub-item .check {
   width: 22px;
