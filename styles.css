@@ -511,7 +511,7 @@ main::-webkit-scrollbar-thumb {
 
 /* ── Section group ─────────────────────────────────────── */
 .secg {
-  margin-bottom: 24px;
+  margin-bottom: 32px;
   animation: rise 0.45s var(--ease) both;
 }
 
@@ -541,7 +541,7 @@ main::-webkit-scrollbar-thumb {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
   padding: 14px 16px;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   cursor: pointer;
   transition: 0.25s var(--ease);
   animation: rise 0.4s var(--ease) both;
@@ -921,7 +921,7 @@ main::-webkit-scrollbar-thumb {
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s, transform 0.15s;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.12);
   -webkit-tap-highlight-color: transparent;
 }
@@ -2299,7 +2299,7 @@ main::-webkit-scrollbar-thumb {
   }
 
   .secg {
-    margin-bottom: 28px;
+    margin-bottom: 36px;
   }
 
   .btn-ghost,
@@ -2623,3 +2623,24 @@ main::-webkit-scrollbar-thumb {
 
 /* Swipe affordance — items move during gesture, color shift indicates action */
 .sub-item, .topic, .secg { position: relative; touch-action: pan-y; }
+
+/* Fixed underlay revealed underneath the swipeable element */
+.swipe-underlay {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  border-radius: 12px;
+  transition: none;
+}
+.swipe-underlay.right {
+  background: linear-gradient(to right, rgba(34,197,94,0.15), transparent 50%);
+  justify-content: flex-start;
+  padding-left: 10px;
+}
+.swipe-underlay.left {
+  background: linear-gradient(to left, rgba(99,102,241,0.15), transparent 50%);
+  justify-content: flex-end;
+  padding-right: 10px;
+}

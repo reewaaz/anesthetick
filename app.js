@@ -1841,7 +1841,7 @@
             lastAutoSyncError = now;
           }
         });
-    }, 800);
+    }, 100);
   }
 
   /* ── Cross-browser cloud polling ──────────────────────────── */
@@ -2538,7 +2538,7 @@
         if (all) { const p = topicProgress(all); tp.classList.toggle('done', p === 1); }
       });
       haptic(25);
-      toast(anyUndone ? 'Section done' : 'Section unmarked');
+      if (anyUndone) { sfxCelebrate(); celebrate(); toast('Section done!'); } else { toast('Section unmarked'); }
       return;
     }
     if (isSub) {
@@ -2549,7 +2549,7 @@
       saveState();
       el.classList.toggle('done', !was);
       haptic(18);
-      toast(!was ? 'Done' : 'Undone');
+      if (!was) { sfxCelebrate(); celebrate(); toast('Done!'); } else { toast('Undone'); }
       refreshTopicPct(el.closest('[data-topic-id]'));
     } else {
       const tid = el.dataset.topicId;
@@ -2562,7 +2562,7 @@
       el.classList.toggle('done', setVal);
       el.querySelectorAll('.sub-item').forEach(s => s.classList.toggle('done', setVal));
       haptic(25);
-      toast(setVal ? 'Topic complete' : 'Unmarked');
+      if (setVal) { sfxCelebrate(); celebrate(); toast('Topic complete!'); } else { toast('Unmarked'); }
       refreshTopicPct(el);
     }
   }
@@ -2610,11 +2610,20 @@
 
   function attachGestures(root) {
     let g = null;
+    function createUnderlay(el) {
+      const r = el.getBoundingClientRect();
+      const u = document.createElement('div');
+      u.className = 'swipe-underlay';
+      u.style.cssText = `top:${r.top}px;left:${r.left}px;width:${r.width}px;height:${r.height}px;`;
+      document.body.appendChild(u);
+      return u;
+    }
+    function removeUnderlay(u) { if (u) { u.remove(); } }
     root.addEventListener('touchstart', e => {
       const el = e.target.closest('.sub-item, .topic, .secg');
       if (!el || e.touches.length !== 1) { g = null; return; }
       const isSub = el.classList.contains('sub-item') || el.classList.contains('secg');
-      g = { el, isSub, x: e.touches[0].clientX, y: e.touches[0].clientY, moved: false, swiped: false, longPressed: false, lp: null };
+      g = { el, isSub, x: e.touches[0].clientX, y: e.touches[0].clientY, moved: false, swiped: false, longPressed: false, lp: null, underlay: null };
       g.lp = setTimeout(() => {
         if (g && !g.moved && !g.swiped) {
           g.longPressed = true;
@@ -2629,21 +2638,19 @@
       const dy = e.touches[0].clientY - g.y;
       if (Math.abs(dx) > 8 || Math.abs(dy) > 8) { g.moved = true; if (g.lp) clearTimeout(g.lp); }
       if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy) * 1.2) {
-        // Clear long-press ref panel during swipe
         if (g.lp) clearTimeout(g.lp);
         g.swiped = true;
-        const off = Math.max(-180, Math.min(180, dx));
-        const intensity = Math.min(1, Math.abs(dx) / 100);
+        const off = Math.max(-130, Math.min(130, dx));
+        const intensity = Math.min(1, Math.abs(dx) / 80);
         g.el.style.transition = 'none';
         g.el.style.transform = 'translateX(' + off + 'px)';
+        if (!g.underlay) { g.underlay = createUnderlay(g.el); }
         if (dx > 0) {
-          g.el.style.borderLeft = Math.round(4 * intensity) + 'px solid rgba(34,197,94,' + (0.2 + 0.6 * intensity) + ')';
-          g.el.style.background = 'linear-gradient(to right, rgba(34,197,94,' + (0.06 * intensity) + '), transparent ' + Math.round(20 + 30 * intensity) + '%)';
-          g.el.style.borderRight = '';
+          g.underlay.className = 'swipe-underlay right';
+          g.underlay.innerHTML = '<svg viewBox="0 0 24 24" style="width:20px;height:20px;color:#22c55e;opacity:' + (0.3 + 0.7 * intensity) + '"><path d="M5 13l4 4 10-10" fill="none" stroke="#22c55e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
         } else {
-          g.el.style.borderRight = Math.round(4 * intensity) + 'px solid rgba(99,102,241,' + (0.2 + 0.6 * intensity) + ')';
-          g.el.style.background = 'linear-gradient(to left, rgba(99,102,241,' + (0.06 * intensity) + '), transparent ' + Math.round(20 + 30 * intensity) + '%)';
-          g.el.style.borderLeft = '';
+          g.underlay.className = 'swipe-underlay left';
+          g.underlay.innerHTML = '<svg viewBox="0 0 24 24" style="width:18px;height:18px;color:#818cf8;opacity:' + (0.3 + 0.7 * intensity) + '"><path d="M6 3h12v18l-6-4-6 4z" fill="none" stroke="#818cf8" stroke-width="2" stroke-linejoin="round"/></svg>';
         }
       }
     }, { passive: true });
@@ -2654,13 +2661,11 @@
       const dx = e.changedTouches[0].clientX - g.x;
       const dy = e.changedTouches[0].clientY - g.y;
       const el = g.el;
-      el.style.transition = 'transform .25s ease, border .2s ease, background .2s ease';
+      el.style.transition = 'transform .25s ease';
       el.style.transform = '';
-      el.style.borderLeft = '';
-      el.style.borderRight = '';
-      el.style.background = '';
+      removeUnderlay(g.underlay);
       setTimeout(() => { el.style.transition = ''; }, 300);
-      if (g.swiped && Math.abs(dx) > 70 && Math.abs(dx) > Math.abs(dy)) {
+      if (g.swiped && Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy)) {
         suppressClick = true;
         setTimeout(() => { suppressClick = false; }, 400);
         if (dx > 0) swipeRight(el, g.isSub); else swipeLeft(el, g.isSub);
@@ -2674,11 +2679,9 @@
     root.addEventListener('touchcancel', () => {
       if (g) {
         if (g.lp) clearTimeout(g.lp);
-        g.el.style.transition = 'transform .25s ease, border .2s ease, background .2s ease';
+        g.el.style.transition = 'transform .25s ease';
         g.el.style.transform = '';
-        g.el.style.borderLeft = '';
-        g.el.style.borderRight = '';
-        g.el.style.background = '';
+        removeUnderlay(g.underlay);
         setTimeout(() => { if (g && g.el) g.el.style.transition = ''; }, 300);
         g = null;
       }
